@@ -1,0 +1,66 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-display: "Space Grotesk", system-ui, sans-serif;
+    --font-sans: "DM Sans", system-ui, sans-serif;
+  }
+
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply bg-mist-50 text-ink font-sans antialiased;
+  }
+
+  ::selection {
+    @apply bg-citron-400 text-ink;
+  }
+
+  * {
+    @apply border-mist-200;
+  }
+}
+
+@layer utilities {
+  .container-page {
+    @apply mx-auto w-full max-w-content px-4 sm:px-6 lg:px-8;
+  }
+
+  .court-lines {
+    background-image:
+      linear-gradient(rgba(255, 255, 255, 0.14) 1.5px, transparent 1.5px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.14) 1.5px, transparent 1.5px);
+    background-size: 42px 42px;
+  }
+
+  .skeleton {
+    @apply relative overflow-hidden bg-mist-100;
+    background-image: linear-gradient(
+      90deg,
+      theme("colors.mist.100") 0px,
+      theme("colors.mist.200") 40px,
+      theme("colors.mist.100") 80px
+    );
+    background-size: 936px 100%;
+    @apply animate-shimmer;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
