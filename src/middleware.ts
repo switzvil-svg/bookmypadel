@@ -7,7 +7,7 @@ import { SESSION_COOKIE } from "@/lib/cookies";
 // still does its own full session + role check server-side (defense in
 // depth, same pattern as /admin's existing isAdmin() guard).
 const PLAYER_ROUTES = ["/compte"];
-const ORGANIZER_ROUTES = ["/organisateurs/tableau-de-bord", "/organisateurs/nouveau-stage"];
+const ORGANIZER_ROUTES = ["/organisateurs/tableau-de-bord", "/organisateurs/nouveau-stage", "/organisateurs/stages"];
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -31,5 +31,10 @@ export function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/compte/:path*", "/organisateurs/tableau-de-bord/:path*", "/organisateurs/nouveau-stage/:path*"],
+  matcher: [
+    "/compte/:path*",
+    "/organisateurs/tableau-de-bord/:path*",
+    "/organisateurs/nouveau-stage/:path*",
+    "/organisateurs/stages/:path*",
+  ],
 };

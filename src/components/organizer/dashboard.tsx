@@ -10,8 +10,6 @@ import {
   Percent,
   Zap,
   Plus,
-  Pencil,
-  MoreHorizontal,
 } from "lucide-react";
 import { OrganizerStageRow } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -19,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { StatCard } from "./stat-card";
 import { RevenueChart } from "./revenue-chart";
 import { LeadsPanel } from "./leads-panel";
+import { StageRowActions } from "./stage-row-actions";
 import { formatPrice } from "@/lib/utils";
 
 const TABS = ["Vue d'ensemble", "Mes stages", "Leads", "Statistiques"] as const;
@@ -138,14 +137,7 @@ export function OrganizerDashboard({
                       </td>
                       <td className="px-4 py-3 font-medium text-ink">{formatPrice(s.revenue)}</td>
                       <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
-                          <button className="cursor-pointer rounded-md p-1.5 text-mist-500 hover:bg-mist-100 hover:text-ink" aria-label="Modifier">
-                            <Pencil size={15} />
-                          </button>
-                          <button className="cursor-pointer rounded-md p-1.5 text-mist-500 hover:bg-mist-100 hover:text-ink" aria-label="Plus d'options">
-                            <MoreHorizontal size={15} />
-                          </button>
-                        </div>
+                        <StageRowActions stageId={s.id} />
                       </td>
                     </tr>
                   ))}

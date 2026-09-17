@@ -316,6 +316,58 @@ export async function getStageByIdDb(id: string): Promise<DbStage | undefined> {
   return row ?? undefined;
 }
 
+export async function updateStage(
+  id: string,
+  input: {
+    title: string;
+    city: string;
+    region: string;
+    country: string;
+    level: string;
+    description: string;
+    pricePerPerson: number;
+    durationDays: number;
+    startDate: string;
+    endDate: string;
+    spotsTotal: number;
+    accommodationIncluded: boolean;
+    externalUrl: string;
+    photos: string[];
+  }
+): Promise<void> {
+  const db = await getDb();
+  await db
+    .prepare(
+      `UPDATE stages SET title = ?, city = ?, region = ?, country = ?, level = ?, description = ?,
+       price_per_person = ?, duration_days = ?, start_date = ?, end_date = ?, spots_total = ?,
+       spots_left = ?, accommodation_included = ?, external_url = ?, photos = ? WHERE id = ?`
+    )
+    .bind(
+      input.title,
+      input.city,
+      input.region,
+      input.country,
+      input.level,
+      input.description,
+      input.pricePerPerson,
+      input.durationDays,
+      input.startDate,
+      input.endDate,
+      input.spotsTotal,
+      input.spotsTotal,
+      input.accommodationIncluded ? 1 : 0,
+      input.externalUrl,
+      JSON.stringify(input.photos),
+      id
+    )
+    .run();
+}
+
+export async function deleteStage(id: string): Promise<void> {
+  const db = await getDb();
+  await db.prepare("DELETE FROM stages WHERE id = ?").bind(id).run();
+}
+
 export async function stageSlugExists(slug: string): Promise<boolean> {
   const db = await getDb();
   const row = await db.prepare("SELECT 1 FROM stages WHERE slug = ?").bind(slug).first();

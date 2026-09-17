@@ -2,9 +2,12 @@ import { Coach, OrganizerStageRow, Stage, Level } from "@/types";
 import {
   DbStage,
   createStage,
+  updateStage,
+  deleteStage,
   listStages,
   listStagesByOrganizer,
   getStageBySlugDb,
+  getStageByIdDb,
   stageSlugExists,
   findUserById,
 } from "@/lib/db";
@@ -148,29 +151,31 @@ export async function getOrganizerStageRows(organizerId: string): Promise<Organi
   }
 }
 
+interface StageFormInput {
+  title: string;
+  city: string;
+  level: string;
+  description: string;
+  start: string;
+  end: string;
+  spots: number;
+  price: number;
+  accommodation: boolean;
+  externalUrl: string;
+  photos: string[];
+}
+
+function computeDurationDays(start: string, end: string): number {
+  const startMs = new Date(start).getTime();
+  const endMs = new Date(end).getTime();
+  return Math.max(1, Math.round((endMs - startMs) / (1000 * 60 * 60 * 24)) + 1);
+}
+
 export async function createStageForOrganizer(
   organizerId: string,
-  input: {
-    title: string;
-    city: string;
-    level: string;
-    description: string;
-    start: string;
-    end: string;
-    spots: number;
-    price: number;
-    accommodation: boolean;
-    externalUrl: string;
-    photos: string[];
-  }
+  input: StageFormInput
 ): Promise<{ slug: string }> {
   const slug = await generateUniqueSlug(input.title);
-  const start = new Date(input.start);
-  const end = new Date(input.end);
-  const durationDays = Math.max(
-    1,
-    Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1
-  );
 
   await createStage({
     slug,
@@ -182,7 +187,7 @@ export async function createStageForOrganizer(
     level: input.level,
     description: input.description,
     pricePerPerson: input.price,
-    durationDays,
+    durationDays: computeDurationDays(input.start, input.end),
     startDate: input.start,
     endDate: input.end,
     spotsTotal: input.spots,
@@ -192,4 +197,46 @@ export async function createStageForOrganizer(
   });
 
   return { slug };
+}
+
+export async function updateStageForOrganizer(
+  stageId: string,
+  organizerId: string,
+  input: StageFormInput
+): Promise<{ ok: true } | { ok: false; error: "not_found" }> {
+  const existing = await getStageByIdDb(stageId);
+  if (!existing || existing.organizer_id !== organizerId) {
+    return { ok: false, error: "not_found" };
+  }
+
+  await updateStage(stageId, {
+    title: input.title,
+    city: input.city,
+    region: existing.region,
+    country: existing.country,
+    level: input.level,
+    description: input.description,
+    pricePerPerson: input.price,
+    durationDays: computeDurationDays(input.start, input.end),
+    startDate: input.start,
+    endDate: input.end,
+    spotsTotal: input.spots,
+    accommodationIncluded: input.accommodation,
+    externalUrl: input.externalUrl,
+    photos: input.photos,
+  });
+
+  return { ok: true };
+}
+
+export async function deleteStageForOrganizer(
+  stageId: string,
+  organizerId: string
+): Promise<{ ok: true } | { ok: false; error: "not_found" }> {
+  const existing = await getStageByIdDb(stageId);
+  if (!existing || existing.organizer_id !== organizerId) {
+    return { ok: false, error: "not_found" };
+  }
+  await deleteStage(stageId);
+  return { ok: true };
 }

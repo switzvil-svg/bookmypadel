@@ -19,24 +19,49 @@ const variants = {
   exit: { opacity: 0, x: -24 },
 };
 
-export function StageFormWizard() {
+interface StageFormState {
+  title: string;
+  city: string;
+  level: string;
+  description: string;
+  start: string;
+  end: string;
+  spots: number;
+  price: number;
+  accommodation: boolean;
+  externalUrl: string;
+  photos: string[];
+}
+
+const EMPTY_FORM: StageFormState = {
+  title: "",
+  city: "",
+  level: "tous-niveaux",
+  description: "",
+  start: "",
+  end: "",
+  spots: 10,
+  price: 300,
+  accommodation: false,
+  externalUrl: "",
+  photos: [],
+};
+
+export function StageFormWizard({
+  editStageId,
+  initialValues,
+  initialSlug,
+}: {
+  editStageId?: string;
+  initialValues?: Partial<StageFormState>;
+  initialSlug?: string;
+} = {}) {
+  const isEdit = Boolean(editStageId);
   const [step, setStep] = useState(0);
-  const [form, setForm] = useState({
-    title: "",
-    city: "",
-    level: "tous-niveaux",
-    description: "",
-    start: "",
-    end: "",
-    spots: 10,
-    price: 300,
-    accommodation: false,
-    externalUrl: "",
-    photos: [] as string[],
-  });
+  const [form, setForm] = useState<StageFormState>({ ...EMPTY_FORM, ...initialValues });
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
-  const [slug, setSlug] = useState<string | null>(null);
+  const [slug, setSlug] = useState<string | null>(initialSlug ?? null);
   const published = step === 4;
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -47,8 +72,8 @@ export function StageFormWizard() {
     setPublishError(null);
     setPublishing(true);
     try {
-      const res = await fetch("/api/organizer/stages", {
-        method: "POST",
+      const res = await fetch(isEdit ? `/api/organizer/stages/${editStageId}` : "/api/organizer/stages", {
+        method: isEdit ? "PATCH" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: form.title,
@@ -70,7 +95,7 @@ export function StageFormWizard() {
         setPublishing(false);
         return;
       }
-      setSlug(data.slug);
+      if (!isEdit) setSlug(data.slug);
       setStep(4);
     } catch {
       setPublishError("Une erreur est survenue, réessayez.");
@@ -208,7 +233,13 @@ export function StageFormWizard() {
                 <Button variant="secondary" onClick={() => setStep(2)} disabled={publishing}>Retour</Button>
                 <Button onClick={handlePublish} disabled={publishing}>
                   {publishing && <Loader2 size={16} className="animate-spin" />}
-                  {publishing ? "Publication…" : "Publier le stage"}
+                  {publishing
+                    ? isEdit
+                      ? "Enregistrement…"
+                      : "Publication…"
+                    : isEdit
+                      ? "Enregistrer les modifications"
+                      : "Publier le stage"}
                 </Button>
               </div>
             </motion.div>
@@ -230,9 +261,13 @@ export function StageFormWizard() {
               >
                 <CheckCircle2 size={36} />
               </motion.div>
-              <h2 className="mt-5 font-display text-xl font-bold text-ink">Stage publié !</h2>
+              <h2 className="mt-5 font-display text-xl font-bold text-ink">
+                {isEdit ? "Stage mis à jour !" : "Stage publié !"}
+              </h2>
               <p className="mt-2 max-w-sm text-sm text-mist-600">
-                Votre stage {form.title ? `« ${form.title} » ` : ""}est maintenant visible par les joueurs.
+                {isEdit
+                  ? `Vos modifications sur ${form.title ? `« ${form.title} » ` : "ce stage "}sont en ligne.`
+                  : `Votre stage ${form.title ? `« ${form.title} » ` : ""}est maintenant visible par les joueurs.`}{" "}
                 Vous pouvez suivre ses performances depuis votre tableau de bord.
               </p>
               <div className="relative mt-5 h-32 w-full max-w-sm overflow-hidden rounded-lg">

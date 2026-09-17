@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
-import { createStageForOrganizer } from "@/lib/stages";
+import { updateStageForOrganizer, deleteStageForOrganizer } from "@/lib/stages";
 import { LEVEL_LABEL } from "@/types";
 
 export const dynamic = "force-dynamic";
 
-export async function POST(req: NextRequest) {
+export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getSessionUser();
   if (!user || user.role !== "organizer") {
     return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { slug } = await createStageForOrganizer(user.id, {
+    const result = await updateStageForOrganizer(params.id, user.id, {
       title,
       city,
       level,
@@ -60,9 +60,30 @@ export async function POST(req: NextRequest) {
       externalUrl,
       photos,
     });
-    return NextResponse.json({ slug });
+    if (!result.ok) {
+      return NextResponse.json({ error: "Stage introuvable." }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true });
   } catch (err) {
-    console.error("[api/organizer/stages] create failed for organizer=%s:", user.id, err);
+    console.error("[api/organizer/stages/%s] update failed for organizer=%s:", params.id, user.id, err);
+    return NextResponse.json({ error: "Erreur serveur, réessayez dans un instant." }, { status: 500 });
+  }
+}
+
+export async function DELETE(req: NextRequest, { params }: { params: { id: string } }) {
+  const user = await getSessionUser();
+  if (!user || user.role !== "organizer") {
+    return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
+  }
+
+  try {
+    const result = await deleteStageForOrganizer(params.id, user.id);
+    if (!result.ok) {
+      return NextResponse.json({ error: "Stage introuvable." }, { status: 404 });
+    }
+    return NextResponse.json({ ok: true });
+  } catch (err) {
+    console.error("[api/organizer/stages/%s] delete failed for organizer=%s:", params.id, user.id, err);
     return NextResponse.json({ error: "Erreur serveur, réessayez dans un instant." }, { status: 500 });
   }
 }
