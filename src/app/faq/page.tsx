@@ -14,7 +14,7 @@ const PLAYER_FAQ = [
 
 const ORGANIZER_FAQ = [
   { q: "Comment devenir organisateur sur BookMyPadel ?", a: "Créez votre compte organisateur, publiez votre stage en renseignant votre lien de contact (site, formulaire ou WhatsApp), et recevez des demandes qualifiées de joueurs directement dans votre tableau de bord." },
-  { q: "Quelle commission est prélevée ?", a: "Aucun prélèvement automatique : une commission de 12% s'applique uniquement sur les réservations que vous déclarez confirmées depuis votre tableau de bord. Vous ne payez que sur ce qui se concrétise réellement." },
+  { q: "Quelle commission est prélevée ?", a: "Aucun prélèvement automatique : une commission de 5% s'applique uniquement sur les réservations que vous déclarez confirmées depuis votre tableau de bord. Vous ne payez que sur ce qui se concrétise réellement." },
   { q: "Comment sont facturées les commissions ?", a: "Vous marquez chaque demande comme « réservation confirmée » en indiquant son montant ; la commission correspondante est calculée automatiquement et vous est facturée périodiquement, hors plateforme." },
   { q: "Comment fonctionne la mise en avant payante ?", a: "Vous pouvez booster un stage pour améliorer sa position dans les résultats de recherche et sa visibilité sur la page d'accueil, voir la page Tarifs." },
 ];

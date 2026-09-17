@@ -19,7 +19,7 @@ export default function PricingPage() {
       <RevealGroup className="mx-auto mt-12 grid max-w-4xl grid-cols-1 gap-6 sm:grid-cols-2">
         <RevealItem className="rounded-lg border border-mist-200 bg-white p-7">
           <h2 className="font-display text-lg font-bold text-ink">Commission standard</h2>
-          <p className="mt-2 font-display text-4xl font-bold text-court-600">12%</p>
+          <p className="mt-2 font-display text-4xl font-bold text-court-600">5%</p>
           <p className="text-sm text-mist-500">par réservation confirmée</p>
           <ul className="mt-6 space-y-2.5 text-sm text-mist-700">
             {[
@@ -61,7 +61,7 @@ export default function PricingPage() {
 
       <Reveal className="mx-auto mt-10 max-w-2xl text-center text-sm text-mist-500">
         BookMyPadel ne prend aucun paiement en ligne. Vous déclarez vous-même chaque réservation
-        confirmée (et son montant) depuis votre tableau de bord ; la commission de 12% n’est due
+        confirmée (et son montant) depuis votre tableau de bord ; la commission de 5% n’est due
         que sur ces réservations déclarées, et vous est facturée périodiquement hors plateforme.
       </Reveal>
     </div>

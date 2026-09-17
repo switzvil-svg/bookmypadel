@@ -52,7 +52,7 @@ que `.env.local` — c'est le fichier que Wrangler/OpenNext lisent en dev.
    lead depuis un dashboard).
 5. Dans son espace (`/organisateurs/tableau-de-bord` → onglet **Leads**), l'organisateur voit
    chaque lead reçu et le marque **« Réservation confirmée »** (avec le montant) ou **« Sans
-   suite »**. La commission (12%, `COMMISSION_RATE` dans `src/lib/db.ts`) est calculée
+   suite »**. La commission (5%, `COMMISSION_RATE` dans `src/lib/db.ts`) est calculée
    automatiquement sur les montants déclarés confirmés — jamais prélevée automatiquement.
    L'historique est exportable en CSV (`/api/organizer/leads/export`).
 6. `/admin` (protégé par `ADMIN_ACCESS_CODE`) donne la vue globale : clics par offre, clics par

@@ -1,7 +1,7 @@
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import crypto from "node:crypto";
 
-export const COMMISSION_RATE = 0.12;
+export const COMMISSION_RATE = 0.05;
 
 export type LeadStatus = "pending" | "confirmed" | "declined";
 

@@ -146,7 +146,7 @@ export function StageFormWizard() {
                   </p>
                 </div>
                 <div className="rounded-md bg-court-50 p-3 text-sm text-court-700">
-                  Aucun paiement en ligne : commission de 12% due uniquement sur les réservations
+                  Aucun paiement en ligne : commission de 5% due uniquement sur les réservations
                   que vous déclarez confirmées depuis votre tableau de bord.
                 </div>
               </div>
