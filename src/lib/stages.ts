@@ -89,14 +89,26 @@ export async function enrichStage(row: DbStage): Promise<Stage> {
 }
 
 export async function getAllStages(): Promise<Stage[]> {
-  const rows = await listStages();
-  return Promise.all(rows.map(enrichStage));
+  try {
+    const rows = await listStages();
+    return await Promise.all(rows.map(enrichStage));
+  } catch (err) {
+    // A DB outage (unmigrated schema, D1 hiccup, ...) must degrade to an
+    // empty listing, never take down every public page that renders it.
+    console.error("[lib/stages] getAllStages failed:", err);
+    return [];
+  }
 }
 
 export async function getStageBySlug(slug: string): Promise<Stage | undefined> {
-  const row = await getStageBySlugDb(slug);
-  if (!row) return undefined;
-  return enrichStage(row);
+  try {
+    const row = await getStageBySlugDb(slug);
+    if (!row) return undefined;
+    return await enrichStage(row);
+  } catch (err) {
+    console.error("[lib/stages] getStageBySlug(%s) failed:", slug, err);
+    return undefined;
+  }
 }
 
 export async function getStagesByIds(ids: string[]): Promise<Stage[]> {
