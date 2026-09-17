@@ -86,7 +86,7 @@ export function AuthForm({
       <form onSubmit={handleSubmit} className="mt-5 space-y-3">
         {mode === "signup" && (
           <Input
-            placeholder="Nom complet"
+            placeholder={role === "organizer" ? "Nom de votre structure" : "Nom complet"}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
