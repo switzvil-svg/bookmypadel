@@ -1,10 +1,18 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { OrganizerDashboard } from "@/components/organizer/dashboard";
 import { organizerStages, revenueByMonth } from "@/data/account";
+import { getSessionUser } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Tableau de bord organisateur" };
+export const dynamic = "force-dynamic";
 
-export default function OrganizerDashboardPage() {
+export default async function OrganizerDashboardPage() {
+  const user = await getSessionUser();
+  if (!user || user.role !== "organizer") {
+    redirect("/organisateurs/connexion?next=/organisateurs/tableau-de-bord");
+  }
+
   return (
     <div className="container-page py-10">
       <h1 className="font-display text-2xl font-bold text-ink">Tableau de bord</h1>

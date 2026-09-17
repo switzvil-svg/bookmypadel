@@ -45,7 +45,9 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   return (
     <html lang="fr" className={cn(display.variable, sans.variable)}>
       <body className="flex min-h-screen flex-col">
-        <AuthProvider initialUser={user ? { id: user.id, name: user.name, email: user.email } : null}>
+        <AuthProvider
+          initialUser={user ? { id: user.id, name: user.name, email: user.email, role: user.role } : null}
+        >
           <Header />
           <main className="flex-1">{children}</main>
           <Footer />

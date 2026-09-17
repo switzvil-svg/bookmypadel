@@ -1,8 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { updateLeadStatus, getLeadById, LeadStatus } from "@/lib/db";
 import { enrichLead, DEMO_ORGANIZER_ID } from "@/lib/leads";
+import { getSessionUser } from "@/lib/session";
+
+export const dynamic = "force-dynamic";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+  const user = await getSessionUser();
+  if (!user || user.role !== "organizer") {
+    return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
+  }
+
   const lead = await getLeadById(params.id);
   if (!lead || lead.organizer_id !== DEMO_ORGANIZER_ID) {
     return NextResponse.json({ error: "Introuvable." }, { status: 404 });

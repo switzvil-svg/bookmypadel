@@ -1,11 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { upsertUser, createSession } from "@/lib/db";
+import { createUser, createSession, findUserByEmail, UserRole } from "@/lib/db";
+import { hashPassword } from "@/lib/password";
 import { SESSION_COOKIE } from "@/lib/session";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(req: NextRequest) {
-  const body = await req.json().catch(() => null) as any;
+  const body = (await req.json().catch(() => null)) as any;
   const name = typeof body?.name === "string" ? body.name.trim() : "";
   const email = typeof body?.email === "string" ? body.email.trim() : "";
+  const password = typeof body?.password === "string" ? body.password : "";
+  const role: UserRole = body?.role === "organizer" ? "organizer" : "player";
 
   if (!name || name.length < 2) {
     return NextResponse.json({ error: "Nom invalide." }, { status: 400 });
@@ -13,11 +18,26 @@ export async function POST(req: NextRequest) {
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return NextResponse.json({ error: "Email invalide." }, { status: 400 });
   }
+  if (!password || password.length < 8) {
+    return NextResponse.json(
+      { error: "Le mot de passe doit contenir au moins 8 caractères." },
+      { status: 400 }
+    );
+  }
 
-  const user = await upsertUser(name, email);
+  const existing = await findUserByEmail(email);
+  if (existing) {
+    return NextResponse.json(
+      { error: "Un compte existe déjà avec cet email. Connectez-vous plutôt." },
+      { status: 409 }
+    );
+  }
+
+  const passwordHash = await hashPassword(password);
+  const user = await createUser(name, email, passwordHash, role);
   const token = await createSession(user.id);
 
-  const res = NextResponse.json({ id: user.id, name: user.name, email: user.email });
+  const res = NextResponse.json({ id: user.id, name: user.name, email: user.email, role: user.role });
   res.cookies.set(SESSION_COOKIE, token, {
     httpOnly: true,
     sameSite: "lax",

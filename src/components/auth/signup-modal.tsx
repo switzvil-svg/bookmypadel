@@ -19,6 +19,7 @@ export function SignupModal({
   const { setUser } = useAuth();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -30,7 +31,7 @@ export function SignupModal({
       const res = await fetch("/api/auth/signup", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email }),
+        body: JSON.stringify({ name, email, password, role: "player" }),
       });
       const data = await res.json() as any;
       if (!res.ok) {
@@ -98,11 +99,26 @@ export function SignupModal({
                 onChange={(e) => setEmail(e.target.value)}
                 required
               />
+              <Input
+                type="password"
+                placeholder="Mot de passe (8 caractères min.)"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={8}
+                required
+              />
               {error && <p className="text-sm text-destructive">{error}</p>}
               <Button type="submit" className="w-full" disabled={loading}>
                 {loading ? "Création…" : "Continuer"}
               </Button>
             </form>
+
+            <p className="mt-3 text-center text-xs text-mist-500">
+              Déjà un compte ?{" "}
+              <a href="/connexion" className="font-semibold text-court-600 hover:text-court-700">
+                Se connecter
+              </a>
+            </p>
 
             <p className="mt-4 inline-flex items-center gap-1.5 text-xs text-mist-500">
               <ShieldCheck size={13} className="text-court-500" /> Aucun paiement en ligne, juste

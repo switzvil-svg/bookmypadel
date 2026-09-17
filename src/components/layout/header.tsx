@@ -3,10 +3,12 @@
 import Link from "next/link";
 import Image from "next/image";
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
-import { Menu, X, User, Heart, LayoutDashboard } from "lucide-react";
+import { Menu, X, User, Heart, LayoutDashboard, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/components/auth/auth-provider";
 
 const NAV = [
   { href: "/recherche", label: "Trouver un stage" },
@@ -16,6 +18,15 @@ const NAV = [
 
 export function Header() {
   const [open, setOpen] = useState(false);
+  const { user, logout } = useAuth();
+  const router = useRouter();
+
+  async function handleLogout() {
+    await logout();
+    setOpen(false);
+    router.push("/");
+    router.refresh();
+  }
 
   return (
     <header className="sticky top-0 z-50 border-b border-mist-200/80 bg-white/85 backdrop-blur-md">
@@ -44,21 +55,47 @@ export function Header() {
         </nav>
 
         <div className="hidden items-center gap-2 lg:flex">
-          <Link href="/compte/favoris">
-            <Button variant="ghost" size="icon" aria-label="Favoris">
-              <Heart size={18} />
-            </Button>
-          </Link>
-          <Link href="/compte">
-            <Button variant="secondary" size="sm">
-              <User size={16} /> Mon compte
-            </Button>
-          </Link>
-          <Link href="/organisateurs/tableau-de-bord">
-            <Button variant="primary" size="sm">
-              <LayoutDashboard size={16} /> Espace pro
-            </Button>
-          </Link>
+          {user?.role === "organizer" ? (
+            <>
+              <Link href="/organisateurs/tableau-de-bord">
+                <Button variant="primary" size="sm">
+                  <LayoutDashboard size={16} /> Tableau de bord
+                </Button>
+              </Link>
+              <Button variant="ghost" size="icon" aria-label="Se déconnecter" onClick={handleLogout}>
+                <LogOut size={18} />
+              </Button>
+            </>
+          ) : user?.role === "player" ? (
+            <>
+              <Link href="/compte/favoris">
+                <Button variant="ghost" size="icon" aria-label="Favoris">
+                  <Heart size={18} />
+                </Button>
+              </Link>
+              <Link href="/compte">
+                <Button variant="secondary" size="sm">
+                  <User size={16} /> Mon compte
+                </Button>
+              </Link>
+              <Button variant="ghost" size="icon" aria-label="Se déconnecter" onClick={handleLogout}>
+                <LogOut size={18} />
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link href="/connexion">
+                <Button variant="secondary" size="sm">
+                  <User size={16} /> Connexion
+                </Button>
+              </Link>
+              <Link href="/organisateurs/connexion">
+                <Button variant="primary" size="sm">
+                  <LayoutDashboard size={16} /> Espace pro
+                </Button>
+              </Link>
+            </>
+          )}
         </div>
 
         <button
@@ -92,16 +129,42 @@ export function Header() {
               </Link>
             ))}
             <div className="mt-2 flex flex-col gap-2">
-              <Link href="/compte" onClick={() => setOpen(false)}>
-                <Button variant="secondary" className="w-full">
-                  <User size={16} /> Mon compte
-                </Button>
-              </Link>
-              <Link href="/organisateurs/tableau-de-bord" onClick={() => setOpen(false)}>
-                <Button variant="primary" className="w-full">
-                  <LayoutDashboard size={16} /> Espace pro
-                </Button>
-              </Link>
+              {user?.role === "organizer" ? (
+                <>
+                  <Link href="/organisateurs/tableau-de-bord" onClick={() => setOpen(false)}>
+                    <Button variant="primary" className="w-full">
+                      <LayoutDashboard size={16} /> Tableau de bord
+                    </Button>
+                  </Link>
+                  <Button variant="secondary" className="w-full" onClick={handleLogout}>
+                    <LogOut size={16} /> Se déconnecter
+                  </Button>
+                </>
+              ) : user?.role === "player" ? (
+                <>
+                  <Link href="/compte" onClick={() => setOpen(false)}>
+                    <Button variant="secondary" className="w-full">
+                      <User size={16} /> Mon compte
+                    </Button>
+                  </Link>
+                  <Button variant="secondary" className="w-full" onClick={handleLogout}>
+                    <LogOut size={16} /> Se déconnecter
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Link href="/connexion" onClick={() => setOpen(false)}>
+                    <Button variant="secondary" className="w-full">
+                      <User size={16} /> Connexion
+                    </Button>
+                  </Link>
+                  <Link href="/organisateurs/connexion" onClick={() => setOpen(false)}>
+                    <Button variant="primary" className="w-full">
+                      <LayoutDashboard size={16} /> Espace pro
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </motion.div>

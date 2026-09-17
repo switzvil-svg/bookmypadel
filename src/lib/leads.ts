@@ -3,9 +3,9 @@ import { stages } from "@/data/stages";
 import { coaches } from "@/data/coaches";
 
 /**
- * No organizer auth exists yet in this prototype (see README) — the organizer
- * back-office always represents this one demo organizer, matching the existing
- * mock `organizerStages` data in `src/data/account.ts`.
+ * Any authenticated `role = "organizer"` account can manage leads, but they
+ * all still map to this one demo organizer (see README) — organizers aren't
+ * multi-tenant yet since `src/data/account.ts`'s `organizerStages` is mock.
  */
 export const DEMO_ORGANIZER_ID = "c1";
 

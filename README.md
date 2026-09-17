@@ -35,6 +35,37 @@ qui proxy D1/R2 localement (via Miniflare) même sans passer par `wrangler`. Les
 locales vivent dans `.dev.vars` (gitignored, déjà créé avec `ADMIN_ACCESS_CODE=changeme`) plutôt
 que `.env.local` — c'est le fichier que Wrangler/OpenNext lisent en dev.
 
+## Authentification et rôles
+
+Trois rôles, stockés dans `users.role` (`player` / `organizer` / `admin`) : un compte joueur et un
+compte organisateur sont deux comptes distincts (même email possible sur les deux, jamais le même
+compte). Mots de passe hashés en PBKDF2/SHA-256 via Web Crypto (`src/lib/password.ts`,
+100 000 itérations, sel aléatoire par compte) — pas bcrypt, qui a besoin d'un binding natif
+indisponible sur les Workers Cloudflare (`workerd` n'a pas de filesystem ni d'addons natifs).
+
+- **`/connexion`** (joueur) et **`/organisateurs/connexion`** — pages de connexion/inscription,
+  chacune restreinte à son rôle (`components/auth/auth-form.tsx`). La modale rapide sur la fiche
+  stage (`components/auth/signup-modal.tsx`, déclenchée par « Voir l'offre ») crée aussi un compte
+  joueur avec mot de passe — c'est le même `/api/auth/signup`, juste une UI plus courte pour ne pas
+  casser le tunnel de conversion lead.
+- **`src/middleware.ts`** intercepte `/compte/*`, `/organisateurs/tableau-de-bord` et
+  `/organisateurs/nouveau-stage` : redirige vers la page de connexion adaptée (avec `?next=`) si
+  aucun cookie de session n'est présent. C'est une garde rapide côté edge (pas d'accès D1 en
+  middleware) — chaque page fait ensuite sa propre vérification complète (session + rôle) côté
+  serveur, comme `/admin` le faisait déjà avec `isAdmin()`. Les 4 routes API organisateur
+  (`/api/organizer/leads*`, `/api/organizer/upload`) vérifient aussi la session server-side
+  maintenant — avant, elles étaient appelables directement sans aucune authentification.
+- **`/admin` reste protégé par le code partagé `ADMIN_ACCESS_CODE`**, pas par le système de rôles —
+  décision volontaire : il n'existe aucun moyen de créer un compte `role = "admin"` via l'UI (le
+  signup public n'accepte que `player`/`organizer`), donc coupler `/admin` au rôle aurait demandé de
+  construire une vraie gestion de comptes admin, hors périmètre de cette tâche. Un compte
+  organisateur ne peut de toute façon pas atteindre `/admin` : le cookie admin est totalement
+  indépendant de la session joueur/organisateur. À revoir si plusieurs personnes doivent un jour
+  avoir un accès admin distinct.
+- Après la migration `0001`, appliquer aussi **`migrations/0002_auth.sql`** (ajoute
+  `password_hash` et `role` à `users`) — `npm run cf:d1:migrate:local` en dev,
+  `npm run cf:d1:migrate:remote` avant tout déploiement.
+
 ## Le modèle : comment un clic devient un lead
 
 1. Un visiteur consulte librement une fiche stage (`/stages/[slug]`) — photos, description, prix,
@@ -239,10 +270,13 @@ composants, même UI, même comportement — uniquement l'implémentation du sto
    (SQLite locale). Migrer stages/organisateurs vers une vraie base (Postgres/Supabase) reste à
    faire pour un vrai back-office de création de compte organisateur.
 2. **Un seul organisateur "démo"** représente le back-office (`DEMO_ORGANIZER_ID = "c1"` dans
-   `src/lib/leads.ts`) — il n'y a pas encore d'authentification organisateur distincte de
-   l'authentification joueur. À construire avant d'onboarder de vrais organisateurs.
+   `src/lib/leads.ts`) — tout compte avec `role = "organizer"` voit désormais ses propres leads via
+   une vraie authentification (voir section **Authentification et rôles**), mais ils pointent tous
+   vers ce même organisateur unique tant que les organisateurs restent des données mock (point 1) :
+   pas encore multi-tenant. À corriger en même temps que la migration des organisateurs en base.
 3. **`/admin` est protégé par un simple code partagé**, pas un vrai compte utilisateur — suffisant
-   pour un usage interne solo, à remplacer avant de donner l'accès à une équipe.
+   pour un usage interne solo (voir justification dans **Authentification et rôles**), à remplacer
+   par une vraie gestion de comptes admin avant de donner l'accès à une équipe.
 4. **Photos** : l'upload est réel (voir section dédiée plus haut), mais comme les stages restent
    des données mock (point 1), les photos uploadées via le formulaire de publication ne sont pas
    rattachées à un vrai stage affiché sur le site — seul l'écran de confirmation du formulaire les

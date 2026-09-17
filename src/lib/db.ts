@@ -4,11 +4,14 @@ import crypto from "node:crypto";
 export const COMMISSION_RATE = 0.05;
 
 export type LeadStatus = "pending" | "confirmed" | "declined";
+export type UserRole = "player" | "organizer" | "admin";
 
 export interface DbUser {
   id: string;
   name: string;
   email: string;
+  password_hash: string;
+  role: UserRole;
   created_at: string;
 }
 
@@ -47,26 +50,26 @@ export async function findUserById(id: string): Promise<DbUser | undefined> {
   return row ?? undefined;
 }
 
-export async function upsertUser(name: string, email: string): Promise<DbUser> {
-  const normalizedEmail = email.trim().toLowerCase();
-  const existing = await findUserByEmail(normalizedEmail);
-  const db = await getDb();
-  if (existing) {
-    if (existing.name !== name) {
-      await db.prepare("UPDATE users SET name = ? WHERE id = ?").bind(name, existing.id).run();
-      return { ...existing, name };
-    }
-    return existing;
-  }
+export async function createUser(
+  name: string,
+  email: string,
+  passwordHash: string,
+  role: UserRole
+): Promise<DbUser> {
   const user: DbUser = {
     id: crypto.randomUUID(),
     name,
-    email: normalizedEmail,
+    email: email.trim().toLowerCase(),
+    password_hash: passwordHash,
+    role,
     created_at: new Date().toISOString(),
   };
+  const db = await getDb();
   await db
-    .prepare("INSERT INTO users (id, name, email, created_at) VALUES (?, ?, ?, ?)")
-    .bind(user.id, user.name, user.email, user.created_at)
+    .prepare(
+      "INSERT INTO users (id, name, email, password_hash, role, created_at) VALUES (?, ?, ?, ?, ?, ?)"
+    )
+    .bind(user.id, user.name, user.email, user.password_hash, user.role, user.created_at)
     .run();
   return user;
 }

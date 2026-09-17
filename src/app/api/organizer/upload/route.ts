@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getCloudflareContext } from "@opennextjs/cloudflare";
 import crypto from "node:crypto";
+import { getSessionUser } from "@/lib/session";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +14,11 @@ const ALLOWED_TYPES: Record<string, string> = {
 };
 
 export async function POST(req: NextRequest) {
+  const user = await getSessionUser();
+  if (!user || user.role !== "organizer") {
+    return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
+  }
+
   const formData = await req.formData().catch(() => null);
   if (!formData) {
     return NextResponse.json({ error: "Requête invalide." }, { status: 400 });

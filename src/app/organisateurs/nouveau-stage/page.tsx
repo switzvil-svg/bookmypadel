@@ -1,9 +1,17 @@
 import { Metadata } from "next";
+import { redirect } from "next/navigation";
 import { StageFormWizard } from "@/components/organizer/stage-form-wizard";
+import { getSessionUser } from "@/lib/session";
 
 export const metadata: Metadata = { title: "Publier un stage" };
+export const dynamic = "force-dynamic";
 
-export default function NewStagePage() {
+export default async function NewStagePage() {
+  const user = await getSessionUser();
+  if (!user || user.role !== "organizer") {
+    redirect("/organisateurs/connexion?next=/organisateurs/nouveau-stage");
+  }
+
   return (
     <div className="container-page py-10">
       <p className="text-sm text-mist-500">Espace organisateur</p>
