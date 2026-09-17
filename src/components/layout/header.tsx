@@ -1,9 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Menu, X, User, Heart, LayoutDashboard, CircleDot } from "lucide-react";
+import { Menu, X, User, Heart, LayoutDashboard } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -20,9 +21,7 @@ export function Header() {
     <header className="sticky top-0 z-50 border-b border-mist-200/80 bg-white/85 backdrop-blur-md">
       <div className="container-page flex h-16 items-center justify-between">
         <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold text-ink">
-          <span className="flex h-8 w-8 items-center justify-center rounded-full bg-court-500 text-white">
-            <CircleDot size={18} strokeWidth={2.5} />
-          </span>
+          <Image src="/logo.svg" alt="" width={32} height={32} className="h-8 w-8" priority />
           BookMyPadel
         </Link>
 

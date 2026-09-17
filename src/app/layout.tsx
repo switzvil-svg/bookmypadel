@@ -28,6 +28,15 @@ export const metadata: Metadata = {
   },
   description:
     "Le comparateur des stages de padel : trouvez, comparez et entrez en contact avec les meilleurs coachs et clubs d'Europe.",
+  icons: {
+    icon: [
+      { url: "/logo.svg", type: "image/svg+xml" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/favicon-64x64.png", sizes: "64x64", type: "image/png" },
+    ],
+    shortcut: "/favicon-32x32.png",
+    apple: "/favicon-64x64.png",
+  },
 };
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {

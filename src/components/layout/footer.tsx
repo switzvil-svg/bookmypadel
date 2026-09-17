@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { CircleDot, ShieldCheck, Users2, RotateCcw } from "lucide-react";
+import Image from "next/image";
+import { ShieldCheck, Users2, RotateCcw } from "lucide-react";
 
 const COLUMNS = [
   {
@@ -37,9 +38,7 @@ export function Footer() {
       <div className="container-page grid gap-10 py-16 lg:grid-cols-[1.3fr_1fr_1fr_1fr]">
         <div>
           <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold text-white">
-            <span className="flex h-8 w-8 items-center justify-center rounded-full bg-citron-500 text-ink">
-              <CircleDot size={18} strokeWidth={2.5} />
-            </span>
+            <Image src="/logo.svg" alt="" width={32} height={32} className="h-8 w-8" />
             BookMyPadel
           </Link>
           <p className="mt-4 max-w-xs text-sm text-mist-400">
