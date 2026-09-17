@@ -18,7 +18,7 @@
     {
       "binding": "DB",
       "database_name": "bookmypadel-db",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "3f21850d-9b29-4168-b2ec-88fdad504225",
       "migrations_dir": "migrations"
     }
   ],
