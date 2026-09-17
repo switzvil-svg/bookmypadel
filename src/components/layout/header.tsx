@@ -20,9 +20,15 @@ export function Header() {
   return (
     <header className="sticky top-0 z-50 border-b border-mist-200/80 bg-white/85 backdrop-blur-md">
       <div className="container-page flex h-16 items-center justify-between">
-        <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold text-ink">
-          <Image src="/logo.svg" alt="" width={32} height={32} className="h-8 w-8" priority />
-          BookMyPadel
+        <Link href="/" className="flex items-center">
+          <Image
+            src="/logo-horizontal.png"
+            alt="BookMyPadel"
+            width={300}
+            height={80}
+            className="h-10 w-auto"
+            priority
+          />
         </Link>
 
         <nav className="hidden items-center gap-1 lg:flex">

@@ -37,9 +37,14 @@ export function Footer() {
     <footer className="mt-24 bg-ink text-mist-200">
       <div className="container-page grid gap-10 py-16 lg:grid-cols-[1.3fr_1fr_1fr_1fr]">
         <div>
-          <Link href="/" className="flex items-center gap-2 font-display text-lg font-bold text-white">
-            <Image src="/logo.svg" alt="" width={32} height={32} className="h-8 w-8" />
-            BookMyPadel
+          <Link href="/" className="flex items-center">
+            <Image
+              src="/logo-horizontal-dark.png"
+              alt="BookMyPadel"
+              width={300}
+              height={80}
+              className="h-10 w-auto"
+            />
           </Link>
           <p className="mt-4 max-w-xs text-sm text-mist-400">
             Le comparateur des stages de padel. Trouvez, comparez et entrez en contact
