@@ -25,24 +25,29 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const existing = await findUserByEmail(email);
-  if (existing) {
-    return NextResponse.json(
-      { error: "Un compte existe déjà avec cet email. Connectez-vous plutôt." },
-      { status: 409 }
-    );
+  try {
+    const existing = await findUserByEmail(email);
+    if (existing) {
+      return NextResponse.json(
+        { error: "Un compte existe déjà avec cet email. Connectez-vous plutôt." },
+        { status: 409 }
+      );
+    }
+
+    const passwordHash = await hashPassword(password);
+    const user = await createUser(name, email, passwordHash, role);
+    const token = await createSession(user.id);
+
+    const res = NextResponse.json({ id: user.id, name: user.name, email: user.email, role: user.role });
+    res.cookies.set(SESSION_COOKIE, token, {
+      httpOnly: true,
+      sameSite: "lax",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 30,
+    });
+    return res;
+  } catch (err) {
+    console.error("[api/auth/signup] failed for role=%s email=%s:", role, email, err);
+    return NextResponse.json({ error: "Erreur serveur, réessayez dans un instant." }, { status: 500 });
   }
-
-  const passwordHash = await hashPassword(password);
-  const user = await createUser(name, email, passwordHash, role);
-  const token = await createSession(user.id);
-
-  const res = NextResponse.json({ id: user.id, name: user.name, email: user.email, role: user.role });
-  res.cookies.set(SESSION_COOKIE, token, {
-    httpOnly: true,
-    sameSite: "lax",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 30,
-  });
-  return res;
 }
