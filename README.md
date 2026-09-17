@@ -118,13 +118,17 @@ stockage) qui sert le contenu à la demande.
 
 ## Base de données (`src/lib/db.ts`)
 
-Trois tables D1 (dialecte SQLite), définies dans `migrations/0001_init.sql` :
+Quatre tables D1 (dialecte SQLite), une migration par étape du développement — toujours les
+appliquer dans l'ordre (`npm run cf:d1:migrate:local` les applique toutes d'un coup, seules les
+migrations pas encore appliquées sont rejouées) :
 
-- `users` — `id, name, email, created_at` (pas de mot de passe : l'auth est un simple
-  nom + email, mémorisé par cookie de session)
-- `sessions` — `token, user_id, created_at`
-- `leads` — `id, token, user_id, stage_id, organizer_id, created_at, redirect_url, status
-  (pending/confirmed/declined), booking_amount, commission_amount`
+- `migrations/0001_init.sql` — `users` (`id, name, email, created_at`), `sessions`
+  (`token, user_id, created_at`), `leads` (`id, token, user_id, stage_id, organizer_id, created_at,
+  redirect_url, status [pending/confirmed/declined], booking_amount, commission_amount`)
+- `migrations/0002_auth.sql` — ajoute `password_hash`, `role` (`player`/`organizer`/`admin`) sur
+  `users` (voir **Authentification et rôles**)
+- `migrations/0003_stages.sql` — table `stages` (voir section **Stages** plus bas)
+- `migrations/0004_seed_demo_stages.sql` — insère les 14 stages de démo dans `stages`
 
 Toutes les fonctions de `db.ts` sont **async** (API D1 : `.prepare(sql).bind(...).first()/.all()/
 .run()`, accessible via `getCloudflareContext({ async: true })`) — contrairement à l'ancienne
@@ -153,7 +157,7 @@ src/
     api/admin/{login,logout}        code d'accès admin
     go/[stageId]/[userId]/[token]   redirection loggable vers l'offre externe
     admin/                          dashboard admin (clics, déclaration, commissions)
-    organisateurs/                  landing, tableau de bord (onglet Leads), formulaire de stage
+    organisateurs/                  landing, tableau de bord (onglet Leads), formulaire de stage (écrit en base)
     stages/[slug]                   fiche stage + OfferCTA (mur d'inscription)
     recherche/                      résultats + filtres
     compte/                         espace joueur (démo, données mock)
@@ -163,9 +167,10 @@ src/
     organizer/                      dashboard, LeadsPanel, formulaire de publication
     stage/                          galerie, OfferCTA, avis, cross-sell, calendrier
     ui/, layout/, search/, booking/(StepIndicator réutilisé par le formulaire organisateur)
-  data/                            stages, coachs/organisateurs (mock — voir plus bas)
+  data/                            coachs mock (profils des 14 stages de démo) + seed stages
   lib/
-    db.ts                          couche D1 (users/sessions/leads)
+    db.ts                          couche D1 (users/sessions/leads/stages)
+    stages.ts                      enrichissement des stages pour l'affichage (voir section Stages)
     session.ts                     lecture des cookies de session (joueur + admin)
     leads.ts                       enrichissement des leads pour l'affichage
     admin-stats.ts                 agrégats pour /admin
@@ -263,26 +268,68 @@ export CSV → dashboard admin (clics, taux de déclaration, commissions) → up
 (compressée, stockée dans R2, réaffichée). Rien n'a été modifié en surface : mêmes routes, mêmes
 composants, même UI, même comportement — uniquement l'implémentation du stockage a changé.
 
+## Stages : table D1 réelle (`migrations/0003_stages.sql`)
+
+Historique du bug corrigé : le formulaire `/organisateurs/nouveau-stage`
+(`components/organizer/stage-form-wizard.tsx`) ne faisait **aucun appel réseau** à l'étape
+« Publier le stage » — l'écran de confirmation était un faux positif purement visuel. Même en
+corrigeant ça, il n'existait aucune table `stages` en base, et les pages de lecture (accueil,
+`/recherche`, `/stages/[slug]`) lisaient toutes `src/data/stages.ts`, un tableau statique — les
+trois causes cumulées expliquaient qu'un stage créé n'apparaissait jamais nulle part.
+
+- **`src/lib/db.ts`** expose le CRUD (`createStage`, `listStages`, `getStageBySlugDb`,
+  `getStageByIdDb`, `stageSlugExists`) sur une table volontairement lean : seuls les champs
+  réellement saisis dans le formulaire sont stockés (titre, ville, niveau, dates, places, prix,
+  hébergement, lien de contact, photos en JSON). `POST /api/organizer/stages` (nouvelle route,
+  protégée comme les autres routes organisateur) écrit désormais pour de vrai à la publication.
+- **`src/lib/stages.ts`** fait l'enrichissement pour reconstituer le type `Stage` complet attendu
+  par les composants existants (`StageCard`, `Gallery`, `ReviewsSection`…) : programme, amenities
+  et avis restent **dérivés à la lecture** par des formules déterministes basées sur `id` (même
+  logique que l'ancien mock, juste appliquée à la volée plutôt que pré-calculée) — pas besoin de
+  les stocker. Le profil "coach" affiché est soit un des 6 coachs mock (`src/data/coaches.ts`, pour
+  les 14 stages de démo, voir plus bas) soit un profil minimal dérivé du vrai compte organisateur
+  (`users.name`, sans club/bio/certification puisque ces champs n'existent pas encore côté compte
+  organisateur réel).
+- **Les 14 stages qui existaient dans `src/data/stages.ts`** sont désormais des lignes en base
+  (`migrations/0004_seed_demo_stages.sql`, générée depuis ce fichier pour garantir la fidélité),
+  pas du code en dur — `src/data/stages.ts` n'est plus lu par aucune page à l'exécution, il ne sert
+  plus que de source pour ce seed et reste consultable pour référence.
+- **`/stages/[slug]` était statique (`generateStaticParams`, SSG au build)** — un piège similaire à
+  celui déjà documenté pour les Route Handlers : un stage créé après le build aurait renvoyé 404
+  indéfiniment. Passé en `dynamic = "force-dynamic"`, rendu à la demande à chaque requête.
+- **Effet de bord corrigé en même temps** : `/api/organizer/leads*` utilisait un
+  `DEMO_ORGANIZER_ID` (`"c1"`) en dur pour filtrer les leads, plutôt que l'id du compte organisateur
+  connecté. Sans ce correctif, un organisateur qui crée un stage aurait généré de vrais leads
+  jamais visibles dans son propre tableau de bord (deuxième bug caché juste derrière le premier).
+  Ces routes utilisent maintenant `user.id` (la session réelle) ; `src/lib/leads.ts` et
+  `src/lib/admin-stats.ts` résolvent le titre du stage et le nom de l'organisateur depuis la vraie
+  base plutôt que depuis les tableaux mock.
+- **Testé de bout en bout** via `cf:preview` : création d'un stage par un compte organisateur réel →
+  visible immédiatement sur `/stages/[slug]`, `/recherche` et l'accueil (sans rebuild) → clic
+  « Voir l'offre » par un joueur → lead créé avec le bon `redirectUrl` (le lien du formulaire, pas
+  un coach mock) → visible dans le tableau de bord *de cet organisateur* → visible dans `/admin`.
+- **Non traité, à signaler** : les photos uploadées sont bien stockées sur le stage (`stages.photos`
+  en JSON) mais ne sont toujours pas rendues comme vraies images nulle part sur le site — `Gallery`
+  et `CoverArt` ne savent afficher que des dégradés générés déterministes à partir d'un seed
+  (`coverSeed`/`gallerySeeds`), jamais une vraie URL d'image. Adapter ces composants pour préférer
+  une photo réelle quand elle existe serait la suite logique. Les dropdowns de villes
+  (`components/search/filters.tsx`, `search-bar.tsx`) listent encore uniquement les villes des 14
+  stages de démo (`@/data/stages`'s `cities`), pas les nouvelles villes ajoutées par des
+  organisateurs — cosmétique, n'affecte pas les résultats de recherche eux-mêmes.
+
 ## État du prototype — à savoir avant production
 
-1. **Stages et organisateurs restent des données mock** (`src/data/stages.ts`,
-   `src/data/coaches.ts`) — seuls les comptes joueurs et les leads sont dans une vraie base
-   (SQLite locale). Migrer stages/organisateurs vers une vraie base (Postgres/Supabase) reste à
-   faire pour un vrai back-office de création de compte organisateur.
-2. **Un seul organisateur "démo"** représente le back-office (`DEMO_ORGANIZER_ID = "c1"` dans
-   `src/lib/leads.ts`) — tout compte avec `role = "organizer"` voit désormais ses propres leads via
-   une vraie authentification (voir section **Authentification et rôles**), mais ils pointent tous
-   vers ce même organisateur unique tant que les organisateurs restent des données mock (point 1) :
-   pas encore multi-tenant. À corriger en même temps que la migration des organisateurs en base.
+1. **Les stages sont réels (D1)**, mais les organisateurs n'ont toujours pas de vrai profil
+   (club, bio, certification, avis) au-delà de `users.name` — voir section **Stages** ci-dessus.
+   Migrer ça vers un vrai profil organisateur en base serait la suite naturelle.
+2. **Multi-tenant partiel** : chaque compte `role = "organizer"` a désormais ses propres stages et
+   ses propres leads (corrigé, voir section **Stages**) — ce qui manque encore est un vrai profil
+   public (page "à propos de l'organisateur", avis agrégés, etc.).
 3. **`/admin` est protégé par un simple code partagé**, pas un vrai compte utilisateur — suffisant
    pour un usage interne solo (voir justification dans **Authentification et rôles**), à remplacer
    par une vraie gestion de comptes admin avant de donner l'accès à une équipe.
-4. **Photos** : l'upload est réel (voir section dédiée plus haut), mais comme les stages restent
-   des données mock (point 1), les photos uploadées via le formulaire de publication ne sont pas
-   rattachées à un vrai stage affiché sur le site — seul l'écran de confirmation du formulaire les
-   affiche. Les fiches stage existantes (`/stages/[slug]`) utilisent toujours `CoverArt`, un
-   système de couvertures génératives (dégradés + motif terrain + icône) déterministe par seed,
-   en attendant que les stages soient persistés en base.
+4. **Photos** : l'upload est réel et rattaché au bon stage en base, mais pas encore affiché comme
+   vraie image nulle part sur le site (voir dernier point de la section **Stages**).
 5. **La base et le stockage sont maintenant Cloudflare D1/R2** (migration effectuée, voir section
    suivante) — plus de fichier SQLite local ni d'écriture disque, l'app est prête pour un
    déploiement multi-instances sur Workers.

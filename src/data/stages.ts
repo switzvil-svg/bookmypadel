@@ -2,7 +2,7 @@ import { Stage } from "@/types";
 import { coaches } from "./coaches";
 import { buildReviews } from "./reviews";
 
-const PROGRAM_STANDARD = [
+export const PROGRAM_STANDARD = [
   { day: "Jour 1", title: "Accueil & évaluation de niveau", description: "Test technique et tactique, constitution des groupes de niveau homogènes." },
   { day: "Jour 2", title: "Technique de fond de court", description: "Coup droit, revers, gestion du vitrage — ateliers en petits groupes." },
   { day: "Jour 3", title: "Jeu au filet & volées", description: "Positionnement, smash, bandeja — situations de match dirigées." },
@@ -10,7 +10,7 @@ const PROGRAM_STANDARD = [
   { day: "Jour 5", title: "Tournoi interne & bilan vidéo", description: "Mise en situation de match, débrief individuel filmé avec le coach." },
 ];
 
-const AMENITIES_BASE = ["Balles fournies", "Vidéo-analyse", "Certificat de niveau", "Assurance incluse"];
+export const AMENITIES_BASE = ["Balles fournies", "Vidéo-analyse", "Certificat de niveau", "Assurance incluse"];
 
 function makeStage(partial: {
   id: string;

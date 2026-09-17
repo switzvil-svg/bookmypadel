@@ -5,7 +5,7 @@ import { StageCard } from "@/components/stage/stage-card";
 import { CoverArt } from "@/components/ui/cover-art";
 import { Reveal, RevealGroup, RevealItem } from "@/components/ui/reveal";
 import { Button } from "@/components/ui/button";
-import { stages, cities } from "@/data/stages";
+import { getAllStages, citiesFrom } from "@/lib/stages";
 
 const STATS = [
   { icon: Award, value: "180+", label: "stages disponibles" },
@@ -14,7 +14,11 @@ const STATS = [
   { icon: Sparkles, value: "60+", label: "coachs certifiés" },
 ];
 
-export default function HomePage() {
+export const dynamic = "force-dynamic";
+
+export default async function HomePage() {
+  const stages = await getAllStages();
+  const cities = citiesFrom(stages);
   const popular = stages.filter((s) => s.popular).slice(0, 4);
   const featured = stages.filter((s) => s.featured).slice(0, 3);
 

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { listLeadsByOrganizer } from "@/lib/db";
-import { enrichLead, DEMO_ORGANIZER_ID } from "@/lib/leads";
+import { enrichLead } from "@/lib/leads";
 import { formatDateLong } from "@/lib/utils";
 import { getSessionUser } from "@/lib/session";
 
@@ -23,7 +23,7 @@ export async function GET() {
     return NextResponse.json({ error: "Non autorisé." }, { status: 401 });
   }
 
-  const raw = await listLeadsByOrganizer(DEMO_ORGANIZER_ID);
+  const raw = await listLeadsByOrganizer(user.id);
   const leads = await Promise.all(raw.map(enrichLead));
 
   const header = [

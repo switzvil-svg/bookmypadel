@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { createLead } from "@/lib/db";
-import { getStageBySlug } from "@/data/stages";
+import { getStageBySlug } from "@/lib/stages";
+
+export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
@@ -11,7 +13,7 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null) as any;
   const stageId = typeof body?.stageId === "string" ? body.stageId : "";
-  const stage = getStageBySlug(stageId);
+  const stage = await getStageBySlug(stageId);
   if (!stage) {
     return NextResponse.json({ error: "Stage introuvable." }, { status: 404 });
   }

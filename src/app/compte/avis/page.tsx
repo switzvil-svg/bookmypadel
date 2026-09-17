@@ -1,18 +1,20 @@
 import { Metadata } from "next";
-import { stages } from "@/data/stages";
+import { getAllStages } from "@/lib/stages";
 import { Rating } from "@/components/ui/rating";
 import { CoverArt } from "@/components/ui/cover-art";
 import { RevealGroup, RevealItem } from "@/components/ui/reveal";
 import { formatDateLong } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Mes avis" };
+export const dynamic = "force-dynamic";
 
-const MY_REVIEWS = [
-  { stage: stages[6], rating: 5, date: "2026-06-05", comment: "Super cycle en soirée, parfait pour progresser sans poser de congés. Le coach est très clair dans ses explications." },
-  { stage: stages[11], rating: 4, date: "2026-08-25", comment: "Belle ambiance familiale, mes enfants ont adoré. Les groupes de niveau auraient pu être un peu plus resserrés." },
-];
+export default async function MyReviewsPage() {
+  const stages = await getAllStages();
+  const MY_REVIEWS = [
+    { stage: stages[6], rating: 5, date: "2026-06-05", comment: "Super cycle en soirée, parfait pour progresser sans poser de congés. Le coach est très clair dans ses explications." },
+    { stage: stages[11], rating: 4, date: "2026-08-25", comment: "Belle ambiance familiale, mes enfants ont adoré. Les groupes de niveau auraient pu être un peu plus resserrés." },
+  ].filter((r) => r.stage);
 
-export default function MyReviewsPage() {
   return (
     <div>
       <h2 className="font-display text-lg font-semibold text-ink">Mes avis</h2>

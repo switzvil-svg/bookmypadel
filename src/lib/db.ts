@@ -15,6 +15,30 @@ export interface DbUser {
   created_at: string;
 }
 
+export interface DbStage {
+  id: string;
+  slug: string;
+  organizer_id: string;
+  title: string;
+  city: string;
+  region: string;
+  country: string;
+  level: string;
+  description: string;
+  price_per_person: number;
+  duration_days: number;
+  start_date: string;
+  end_date: string;
+  spots_total: number;
+  spots_left: number;
+  accommodation_included: number;
+  external_url: string;
+  photos: string;
+  featured: number;
+  popular: number;
+  created_at: string;
+}
+
 export interface DbLead {
   id: string;
   token: string;
@@ -187,4 +211,104 @@ export async function updateLeadStatus(
     .bind(status, bookingAmount, commissionAmount, id)
     .run();
   return getLeadById(id);
+}
+
+// ---- stages ----
+
+export async function createStage(input: {
+  slug: string;
+  organizerId: string;
+  title: string;
+  city: string;
+  region: string;
+  country: string;
+  level: string;
+  description: string;
+  pricePerPerson: number;
+  durationDays: number;
+  startDate: string;
+  endDate: string;
+  spotsTotal: number;
+  accommodationIncluded: boolean;
+  externalUrl: string;
+  photos: string[];
+}): Promise<DbStage> {
+  const stage: DbStage = {
+    id: crypto.randomUUID(),
+    slug: input.slug,
+    organizer_id: input.organizerId,
+    title: input.title,
+    city: input.city,
+    region: input.region,
+    country: input.country,
+    level: input.level,
+    description: input.description,
+    price_per_person: input.pricePerPerson,
+    duration_days: input.durationDays,
+    start_date: input.startDate,
+    end_date: input.endDate,
+    spots_total: input.spotsTotal,
+    spots_left: input.spotsTotal,
+    accommodation_included: input.accommodationIncluded ? 1 : 0,
+    external_url: input.externalUrl,
+    photos: JSON.stringify(input.photos),
+    featured: 0,
+    popular: 0,
+    created_at: new Date().toISOString(),
+  };
+  const db = await getDb();
+  await db
+    .prepare(
+      `INSERT INTO stages (id, slug, organizer_id, title, city, region, country, level, description, price_per_person, duration_days, start_date, end_date, spots_total, spots_left, accommodation_included, external_url, photos, featured, popular, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      stage.id,
+      stage.slug,
+      stage.organizer_id,
+      stage.title,
+      stage.city,
+      stage.region,
+      stage.country,
+      stage.level,
+      stage.description,
+      stage.price_per_person,
+      stage.duration_days,
+      stage.start_date,
+      stage.end_date,
+      stage.spots_total,
+      stage.spots_left,
+      stage.accommodation_included,
+      stage.external_url,
+      stage.photos,
+      stage.featured,
+      stage.popular,
+      stage.created_at
+    )
+    .run();
+  return stage;
+}
+
+export async function listStages(): Promise<DbStage[]> {
+  const db = await getDb();
+  const { results } = await db.prepare("SELECT * FROM stages ORDER BY created_at ASC").all<DbStage>();
+  return results;
+}
+
+export async function getStageBySlugDb(slug: string): Promise<DbStage | undefined> {
+  const db = await getDb();
+  const row = await db.prepare("SELECT * FROM stages WHERE slug = ?").bind(slug).first<DbStage>();
+  return row ?? undefined;
+}
+
+export async function getStageByIdDb(id: string): Promise<DbStage | undefined> {
+  const db = await getDb();
+  const row = await db.prepare("SELECT * FROM stages WHERE id = ?").bind(id).first<DbStage>();
+  return row ?? undefined;
+}
+
+export async function stageSlugExists(slug: string): Promise<boolean> {
+  const db = await getDb();
+  const row = await db.prepare("SELECT 1 FROM stages WHERE slug = ?").bind(slug).first();
+  return row != null;
 }

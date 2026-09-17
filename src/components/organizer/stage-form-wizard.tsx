@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle2, Sparkles } from "lucide-react";
+import { CheckCircle2, Sparkles, Loader2 } from "lucide-react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -34,10 +34,49 @@ export function StageFormWizard() {
     externalUrl: "",
     photos: [] as string[],
   });
+  const [publishing, setPublishing] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
+  const [slug, setSlug] = useState<string | null>(null);
   const published = step === 4;
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
     setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  async function handlePublish() {
+    setPublishError(null);
+    setPublishing(true);
+    try {
+      const res = await fetch("/api/organizer/stages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: form.title,
+          city: form.city,
+          level: form.level,
+          description: form.description,
+          start: form.start,
+          end: form.end,
+          spots: form.spots,
+          price: form.price,
+          accommodation: form.accommodation,
+          externalUrl: form.externalUrl,
+          photos: form.photos,
+        }),
+      });
+      const data = (await res.json().catch(() => null)) as any;
+      if (!res.ok) {
+        setPublishError(data?.error ?? "Une erreur est survenue lors de la publication.");
+        setPublishing(false);
+        return;
+      }
+      setSlug(data.slug);
+      setStep(4);
+    } catch {
+      setPublishError("Une erreur est survenue, réessayez.");
+    } finally {
+      setPublishing(false);
+    }
   }
 
   return (
@@ -164,9 +203,13 @@ export function StageFormWizard() {
               <div className="mt-5 max-w-xl">
                 <PhotoUploader value={form.photos} onChange={(photos) => update("photos", photos)} />
               </div>
+              {publishError && <p className="mt-4 max-w-xl text-sm text-destructive">{publishError}</p>}
               <div className="mt-6 flex gap-3">
-                <Button variant="secondary" onClick={() => setStep(2)}>Retour</Button>
-                <Button onClick={() => setStep(4)}>Publier le stage</Button>
+                <Button variant="secondary" onClick={() => setStep(2)} disabled={publishing}>Retour</Button>
+                <Button onClick={handlePublish} disabled={publishing}>
+                  {publishing && <Loader2 size={16} className="animate-spin" />}
+                  {publishing ? "Publication…" : "Publier le stage"}
+                </Button>
               </div>
             </motion.div>
           )}
@@ -200,6 +243,11 @@ export function StageFormWizard() {
                 )}
               </div>
               <div className="mt-6 flex flex-wrap justify-center gap-3">
+                {slug && (
+                  <a href={`/stages/${slug}`}>
+                    <Button variant="secondary">Voir la fiche</Button>
+                  </a>
+                )}
                 <a href="/organisateurs/tableau-de-bord">
                   <Button>Aller au tableau de bord</Button>
                 </a>

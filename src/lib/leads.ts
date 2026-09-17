@@ -1,13 +1,5 @@
-import { DbLead, findUserById } from "@/lib/db";
-import { stages } from "@/data/stages";
+import { DbLead, findUserById, getStageByIdDb } from "@/lib/db";
 import { coaches } from "@/data/coaches";
-
-/**
- * Any authenticated `role = "organizer"` account can manage leads, but they
- * all still map to this one demo organizer (see README) — organizers aren't
- * multi-tenant yet since `src/data/account.ts`'s `organizerStages` is mock.
- */
-export const DEMO_ORGANIZER_ID = "c1";
 
 export interface EnrichedLead {
   id: string;
@@ -25,9 +17,18 @@ export interface EnrichedLead {
 }
 
 export async function enrichLead(lead: DbLead): Promise<EnrichedLead> {
-  const user = await findUserById(lead.user_id);
-  const stage = stages.find((s) => s.id === lead.stage_id);
-  const organizer = coaches.find((c) => c.id === lead.organizer_id);
+  const [user, stage] = await Promise.all([
+    findUserById(lead.user_id),
+    getStageByIdDb(lead.stage_id),
+  ]);
+  const mockCoach = coaches.find((c) => c.id === lead.organizer_id);
+  let organizerClub = lead.organizer_id;
+  if (mockCoach) {
+    organizerClub = mockCoach.club;
+  } else {
+    const organizerUser = await findUserById(lead.organizer_id);
+    if (organizerUser) organizerClub = organizerUser.name;
+  }
 
   return {
     id: lead.id,
@@ -41,6 +42,6 @@ export async function enrichLead(lead: DbLead): Promise<EnrichedLead> {
     stageTitle: stage?.title ?? lead.stage_id,
     stageId: lead.stage_id,
     organizerId: lead.organizer_id,
-    organizerClub: organizer?.club ?? lead.organizer_id,
+    organizerClub,
   };
 }

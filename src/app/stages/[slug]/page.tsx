@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { Metadata } from "next";
 import { MapPin, CalendarDays, Users, BadgeCheck, Award } from "lucide-react";
-import { stages, getStageBySlug } from "@/data/stages";
+import { getStageBySlug } from "@/lib/stages";
 import { Gallery } from "@/components/stage/gallery";
 import { OfferCTA } from "@/components/stage/offer-cta";
 import { ReviewsSection } from "@/components/stage/reviews-section";
@@ -15,18 +15,16 @@ import { Reveal } from "@/components/ui/reveal";
 import { LEVEL_LABEL } from "@/types";
 import { formatDateRange } from "@/lib/utils";
 
-export function generateStaticParams() {
-  return stages.map((s) => ({ slug: s.slug }));
-}
+export const dynamic = "force-dynamic";
 
-export function generateMetadata({ params }: { params: { slug: string } }): Metadata {
-  const stage = getStageBySlug(params.slug);
+export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
+  const stage = await getStageBySlug(params.slug);
   if (!stage) return {};
   return { title: stage.title, description: stage.description };
 }
 
-export default function StageDetailPage({ params }: { params: { slug: string } }) {
-  const stage = getStageBySlug(params.slug);
+export default async function StageDetailPage({ params }: { params: { slug: string } }) {
+  const stage = await getStageBySlug(params.slug);
   if (!stage) notFound();
 
   return (
