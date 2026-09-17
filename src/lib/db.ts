@@ -301,6 +301,15 @@ export async function getStageBySlugDb(slug: string): Promise<DbStage | undefine
   return row ?? undefined;
 }
 
+export async function listStagesByOrganizer(organizerId: string): Promise<DbStage[]> {
+  const db = await getDb();
+  const { results } = await db
+    .prepare("SELECT * FROM stages WHERE organizer_id = ? ORDER BY created_at DESC")
+    .bind(organizerId)
+    .all<DbStage>();
+  return results;
+}
+
 export async function getStageByIdDb(id: string): Promise<DbStage | undefined> {
   const db = await getDb();
   const row = await db.prepare("SELECT * FROM stages WHERE id = ?").bind(id).first<DbStage>();

@@ -17,7 +17,7 @@ export const DEFAULT_FILTERS: FilterState = {
   city: "",
   levels: [],
   priceMax: 900,
-  durationMax: 7,
+  durationMax: 30,
   accommodationOnly: false,
   minParticipants: 1,
 };
@@ -97,7 +97,7 @@ export function Filters({
         <input
           type="range"
           min={1}
-          max={7}
+          max={30}
           step={1}
           value={value.durationMax}
           onChange={(e) => onChange({ ...value, durationMax: Number(e.target.value) })}

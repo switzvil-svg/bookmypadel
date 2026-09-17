@@ -1,8 +1,9 @@
-import { Coach, Stage, Level } from "@/types";
+import { Coach, OrganizerStageRow, Stage, Level } from "@/types";
 import {
   DbStage,
   createStage,
   listStages,
+  listStagesByOrganizer,
   getStageBySlugDb,
   stageSlugExists,
   findUserById,
@@ -10,6 +11,7 @@ import {
 import { coaches } from "@/data/coaches";
 import { buildReviews } from "@/data/reviews";
 import { PROGRAM_STANDARD, AMENITIES_BASE } from "@/data/stages";
+import { formatDateRange } from "@/lib/utils";
 
 function slugify(title: string): string {
   return title
@@ -119,6 +121,31 @@ export async function getStagesByIds(ids: string[]): Promise<Stage[]> {
 
 export function citiesFrom(stages: Stage[]): string[] {
   return Array.from(new Set(stages.map((s) => s.city))).sort();
+}
+
+export async function getOrganizerStageRows(organizerId: string): Promise<OrganizerStageRow[]> {
+  try {
+    const rows = await listStagesByOrganizer(organizerId);
+    // Views/bookings/revenue/boosted aren't tracked anywhere yet (no page-
+    // view analytics, no booking pipeline beyond leads) — reporting them as
+    // 0 is the honest value, not a placeholder to fill in later.
+    return rows.map((row) => ({
+      id: row.id,
+      title: row.title,
+      city: row.city,
+      dateRange: formatDateRange(row.start_date, row.end_date),
+      spotsLeft: row.spots_left,
+      spotsTotal: row.spots_total,
+      status: row.spots_left === 0 ? "complet" : "publie",
+      views: 0,
+      bookings: 0,
+      revenue: 0,
+      boosted: false,
+    }));
+  } catch (err) {
+    console.error("[lib/stages] getOrganizerStageRows(%s) failed:", organizerId, err);
+    return [];
+  }
 }
 
 export async function createStageForOrganizer(
