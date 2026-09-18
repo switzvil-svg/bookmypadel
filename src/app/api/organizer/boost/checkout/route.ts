@@ -28,7 +28,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Stage manquant." }, { status: 400 });
   }
 
-  const result = await startBoostCheckout(stageId, user.id);
+  let result;
+  try {
+    result = await startBoostCheckout(stageId, user.id);
+  } catch (err) {
+    console.error("[api/organizer/boost/checkout] startBoostCheckout failed:", err);
+    return NextResponse.json({ error: "Erreur serveur, réessayez dans un instant." }, { status: 500 });
+  }
   if (!result.ok) {
     return NextResponse.json({ error: result.error }, { status: 400 });
   }

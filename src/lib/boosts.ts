@@ -21,14 +21,27 @@ export interface SlotAvailability {
 }
 
 export async function getSlotAvailability(): Promise<SlotAvailability> {
-  const active = await countActiveBoosts();
-  const remaining = Math.max(0, BOOST_CONFIG.MAX_ACTIVE_SLOTS - active);
-  return { active, max: BOOST_CONFIG.MAX_ACTIVE_SLOTS, remaining, full: remaining === 0 };
+  try {
+    const active = await countActiveBoosts();
+    const remaining = Math.max(0, BOOST_CONFIG.MAX_ACTIVE_SLOTS - active);
+    return { active, max: BOOST_CONFIG.MAX_ACTIVE_SLOTS, remaining, full: remaining === 0 };
+  } catch (err) {
+    // Rendered on /organisateurs/tarifs and the boost purchase page — a DB
+    // hiccup must degrade, and "no slots available" (blocks purchases) is
+    // the safe direction to fail in, not "plenty available".
+    console.error("[lib/boosts] getSlotAvailability failed:", err);
+    return { active: BOOST_CONFIG.MAX_ACTIVE_SLOTS, max: BOOST_CONFIG.MAX_ACTIVE_SLOTS, remaining: 0, full: true };
+  }
 }
 
 export async function hasActiveBoost(stageId: string): Promise<boolean> {
-  const boost = await getActiveBoostForStage(stageId);
-  return Boolean(boost);
+  try {
+    const boost = await getActiveBoostForStage(stageId);
+    return Boolean(boost);
+  } catch (err) {
+    console.error("[lib/boosts] hasActiveBoost(%s) failed:", stageId, err);
+    return false;
+  }
 }
 
 export interface EnrichedBoostHistoryEntry {
@@ -45,32 +58,48 @@ export interface EnrichedBoostHistoryEntry {
 export async function getBoostHistoryForOrganizer(
   organizerId: string
 ): Promise<EnrichedBoostHistoryEntry[]> {
-  const boosts = await listBoostsByOrganizer(organizerId);
-  const now = Date.now();
-  return Promise.all(
-    boosts.map(async (b) => {
-      const stage = await getStageByIdDb(b.stage_id);
-      return {
-        id: b.id,
-        stageId: b.stage_id,
-        stageTitle: stage?.title ?? "Stage supprimé",
-        createdAt: b.created_at,
-        expiresAt: b.expires_at,
-        amountPaid: b.amount_paid,
-        paymentStatus: b.payment_status,
-        active: b.payment_status === "paid" && new Date(b.expires_at).getTime() > now,
-      };
-    })
-  );
+  try {
+    const boosts = await listBoostsByOrganizer(organizerId);
+    const now = Date.now();
+    return await Promise.all(
+      boosts.map(async (b) => {
+        const stage = await getStageByIdDb(b.stage_id);
+        return {
+          id: b.id,
+          stageId: b.stage_id,
+          stageTitle: stage?.title ?? "Stage supprimé",
+          createdAt: b.created_at,
+          expiresAt: b.expires_at,
+          amountPaid: b.amount_paid,
+          paymentStatus: b.payment_status,
+          active: b.payment_status === "paid" && new Date(b.expires_at).getTime() > now,
+        };
+      })
+    );
+  } catch (err) {
+    // Rendered on the organizer dashboard — degrade to "no history" rather
+    // than taking down the whole tableau de bord.
+    console.error("[lib/boosts] getBoostHistoryForOrganizer(%s) failed:", organizerId, err);
+    return [];
+  }
 }
 
 export async function getBoostedStages(): Promise<Stage[]> {
-  const rows = await listActiveBoostedStages();
-  const stages = await Promise.all(rows.map(enrichStage));
-  // The existing "À la une" badge (StageCard, stage detail page) reads
-  // Stage.featured — a boosted stage should show it regardless of the
-  // editorial `featured` flag in the DB row.
-  return stages.map((s) => ({ ...s, featured: true }));
+  try {
+    const rows = await listActiveBoostedStages();
+    const stages = await Promise.all(rows.map(enrichStage));
+    // The existing "À la une" badge (StageCard, stage detail page) reads
+    // Stage.featured — a boosted stage should show it regardless of the
+    // editorial `featured` flag in the DB row.
+    return stages.map((s) => ({ ...s, featured: true }));
+  } catch (err) {
+    // Called unconditionally from the homepage on every request — same
+    // rule as getAllStages()/getSessionUser(): a DB hiccup here (e.g. an
+    // unmigrated `boosts` table) must degrade to "no active boosts", never
+    // take down the entire site the way it just did in production.
+    console.error("[lib/boosts] getBoostedStages failed:", err);
+    return [];
+  }
 }
 
 export async function startBoostCheckout(
