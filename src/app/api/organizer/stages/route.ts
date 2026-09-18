@@ -47,7 +47,7 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    const { slug } = await createStageForOrganizer(user.id, {
+    const { id, slug } = await createStageForOrganizer(user.id, {
       title,
       city,
       level,
@@ -60,7 +60,7 @@ export async function POST(req: NextRequest) {
       externalUrl,
       photos,
     });
-    return NextResponse.json({ slug });
+    return NextResponse.json({ id, slug });
   } catch (err) {
     console.error("[api/organizer/stages] create failed for organizer=%s:", user.id, err);
     return NextResponse.json({ error: "Erreur serveur, réessayez dans un instant." }, { status: 500 });

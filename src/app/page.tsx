@@ -6,6 +6,7 @@ import { CoverArt } from "@/components/ui/cover-art";
 import { Reveal, RevealGroup, RevealItem } from "@/components/ui/reveal";
 import { Button } from "@/components/ui/button";
 import { getAllStages, citiesFrom } from "@/lib/stages";
+import { getBoostedStages } from "@/lib/boosts";
 
 const STATS = [
   { icon: Award, value: "180+", label: "stages disponibles" },
@@ -20,7 +21,11 @@ export default async function HomePage() {
   const stages = await getAllStages();
   const cities = citiesFrom(stages);
   const popular = stages.filter((s) => s.popular).slice(0, 4);
-  const featured = stages.filter((s) => s.featured).slice(0, 3);
+  const boosted = await getBoostedStages();
+  // Real boosts take priority; while none are active yet (no purchase has
+  // gone through), fall back to the editorial `featured` flag so this
+  // section isn't empty on a fresh deploy.
+  const featured = (boosted.length > 0 ? boosted : stages.filter((s) => s.featured)).slice(0, 3);
 
   return (
     <div>

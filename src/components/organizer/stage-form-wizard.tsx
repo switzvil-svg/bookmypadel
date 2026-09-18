@@ -62,6 +62,7 @@ export function StageFormWizard({
   const [publishing, setPublishing] = useState(false);
   const [publishError, setPublishError] = useState<string | null>(null);
   const [slug, setSlug] = useState<string | null>(initialSlug ?? null);
+  const [stageId, setStageId] = useState<string | null>(editStageId ?? null);
   const published = step === 4;
 
   function update<K extends keyof typeof form>(key: K, value: (typeof form)[K]) {
@@ -95,7 +96,10 @@ export function StageFormWizard({
         setPublishing(false);
         return;
       }
-      if (!isEdit) setSlug(data.slug);
+      if (!isEdit) {
+        setSlug(data.slug);
+        setStageId(data.id);
+      }
       setStep(4);
     } catch {
       setPublishError("Une erreur est survenue, réessayez.");
@@ -286,11 +290,13 @@ export function StageFormWizard({
                 <a href="/organisateurs/tableau-de-bord">
                   <Button>Aller au tableau de bord</Button>
                 </a>
-                <a href="/organisateurs/tarifs">
-                  <Button variant="secondary">
-                    <Sparkles size={15} /> Booster ce stage
-                  </Button>
-                </a>
+                {stageId && (
+                  <a href={`/organisateurs/stages/${stageId}/booster`}>
+                    <Button variant="secondary">
+                      <Sparkles size={15} /> Booster ce stage
+                    </Button>
+                  </a>
+                )}
               </div>
             </motion.div>
           )}

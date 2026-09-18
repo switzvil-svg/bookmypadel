@@ -118,7 +118,7 @@ stockage) qui sert le contenu à la demande.
 
 ## Base de données (`src/lib/db.ts`)
 
-Quatre tables D1 (dialecte SQLite), une migration par étape du développement — toujours les
+Cinq tables D1 (dialecte SQLite), une migration par étape du développement — toujours les
 appliquer dans l'ordre (`npm run cf:d1:migrate:local` les applique toutes d'un coup, seules les
 migrations pas encore appliquées sont rejouées) :
 
@@ -129,6 +129,7 @@ migrations pas encore appliquées sont rejouées) :
   `users` (voir **Authentification et rôles**)
 - `migrations/0003_stages.sql` — table `stages` (voir section **Stages** plus bas)
 - `migrations/0004_seed_demo_stages.sql` — insère les 14 stages de démo dans `stages`
+- `migrations/0005_boosts.sql` — table `boosts` (voir section **Mise en avant (boosts)** plus bas)
 
 Toutes les fonctions de `db.ts` sont **async** (API D1 : `.prepare(sql).bind(...).first()/.all()/
 .run()`, accessible via `getCloudflareContext({ async: true })`) — contrairement à l'ancienne
@@ -316,6 +317,58 @@ trois causes cumulées expliquaient qu'un stage créé n'apparaissait jamais nul
   (`components/search/filters.tsx`, `search-bar.tsx`) listent encore uniquement les villes des 14
   stages de démo (`@/data/stages`'s `cities`), pas les nouvelles villes ajoutées par des
   organisateurs — cosmétique, n'affecte pas les résultats de recherche eux-mêmes.
+
+## Mise en avant (boosts) — `migrations/0005_boosts.sql`
+
+Remplace l'ancienne carte "Mise en avant (boost) — +29€/stage/semaine" de `/organisateurs/tarifs`,
+qui affichait un prix sans qu'aucune fonctionnalité réelle n'existe derrière (reliquat du prototype
+initial). Le système réel :
+
+- **`src/lib/config.ts`** centralise `BOOST_CONFIG` (`PRICE_EUR: 29.99`, `DURATION_DAYS: 7`,
+  `MAX_ACTIVE_SLOTS: 8`) — toute la logique et tout l'affichage (page tarifs, page d'achat) lisent
+  cette constante, jamais une valeur en dur.
+- **`src/lib/db.ts`** (section boosts) + **`src/lib/boosts.ts`** : comptage des slots actifs,
+  vérification qu'un stage n'a pas déjà un boost actif, historique par organisateur, jointure
+  `stages`/`boosts` pour la page d'accueil. **Piège évité** : SQLite `datetime('now')` et nos
+  colonnes ISO (`toISOString()`) ont des séparateurs différents (`" "` vs `"T"`) — les comparer
+  comme chaînes aurait classé un boost déjà expiré comme "encore actif" tant qu'on reste dans la
+  même journée calendaire. Toutes les comparaisons de date utilisent
+  `strftime('%Y-%m-%dT%H:%M:%fZ','now')` pour rester dans le même format que les colonnes stockées.
+- **Paiement Stripe (mode paiement direct, pas Stripe Connect)** :
+  `POST /api/organizer/boost/checkout` crée une ligne `boosts` en statut `pending` (places/`stage`
+  déjà validés) puis une Stripe Checkout Session ; `POST /api/webhooks/stripe` vérifie la signature
+  et passe le boost en `paid` (avec `started_at`/`expires_at` calculés à la confirmation, pas à la
+  création — un paiement qui traîne quelques heures ne doit pas amputer la durée du boost) **une
+  fois seulement le paiement confirmé, jamais avant**. `src/lib/stripe.ts` utilise le client HTTP
+  basé sur `fetch` de Stripe (`Stripe.createFetchHttpClient()`) et `constructEventAsync` pour la
+  vérification de signature côté webhook — le client par défaut de `stripe-node` et sa vérification
+  de signature synchrone dépendent de `node:http`/crypto Node, indisponibles sur le runtime Workers
+  même avec `nodejs_compat`.
+- **Aucune clé Stripe n'a été configurée dans cette session** (pas de compte Stripe côté client au
+  moment du développement) — `getStripeClient()` retourne `null` si `STRIPE_SECRET_KEY` est absent,
+  et la route de paiement répond alors un 503 propre ("paiement non configuré") plutôt que de
+  planter ou de laisser passer un faux paiement. **À faire avant d'utiliser le système pour de
+  vrai** : créer un compte Stripe, `wrangler secret put STRIPE_SECRET_KEY` et
+  `wrangler secret put STRIPE_WEBHOOK_SECRET` en prod (ajouter les mêmes clés en test dans
+  `.dev.vars`, gitignored, pour le dev local), déclarer un endpoint webhook dans le dashboard
+  Stripe pointant vers `https://<domaine>/api/webhooks/stripe` pour l'événement
+  `checkout.session.completed`, et copier son "Signing secret" dans `STRIPE_WEBHOOK_SECRET`.
+- **Toute la logique métier (slots, historique, badge "À la une", isolation par organisateur) a été
+  testée de bout en bout sans Stripe**, en insérant directement des lignes `payment_status='paid'`
+  en base D1 locale (comme suggéré) : comptage des slots restants en temps réel sur
+  `/organisateurs/tarifs` et la page d'achat, blocage propre au 9ᵉ boost avec message clair, badge
+  "Boosté" + historique dans le tableau de bord (vérifié dans un vrai navigateur — ces onglets sont
+  pilotés par un state client, invisibles dans le HTML statique), boost expiré correctement exclu du
+  comptage et de l'affichage sans aucune action manuelle.
+- **Section "À la une" de l'accueil** (`src/app/page.tsx`) : priorité aux vrais boosts actifs
+  (`getBoostedStages()`) ; si aucun boost actif n'existe, repli sur les stages au flag éditorial
+  `featured` (choix explicite du client) pour ne jamais avoir une section vide sur un déploiement
+  neuf. Un stage réellement boosté a son `featured` forcé à `true` en mémoire au moment de
+  l'enrichissement (`getBoostedStages()`), pour que le badge "À la une" existant sur `StageCard` et
+  la fiche stage s'affiche sans avoir dû modifier ces composants.
+- **Tableau de bord organisateur** : bouton "Booster" visible uniquement sur un stage sans boost
+  actif (`Mes stages` + `Statistiques`), badge "Boosté" sinon, historique des mises en avant (date,
+  montant, statut) sous le tableau "Mes stages".
 
 ## État du prototype — à savoir avant production
 

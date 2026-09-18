@@ -9,5 +9,7 @@ declare global {
     DB: D1Database;
     PHOTOS: R2Bucket;
     ADMIN_ACCESS_CODE: string;
+    STRIPE_SECRET_KEY: string;
+    STRIPE_WEBHOOK_SECRET: string;
   }
 }

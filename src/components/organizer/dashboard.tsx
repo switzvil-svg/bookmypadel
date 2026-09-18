@@ -18,7 +18,19 @@ import { StatCard } from "./stat-card";
 import { RevenueChart } from "./revenue-chart";
 import { LeadsPanel } from "./leads-panel";
 import { StageRowActions } from "./stage-row-actions";
-import { formatPrice } from "@/lib/utils";
+import { formatPrice, formatDateLong } from "@/lib/utils";
+import type { EnrichedBoostHistoryEntry } from "@/lib/boosts";
+
+const BOOST_STATUS_TONE: Record<EnrichedBoostHistoryEntry["paymentStatus"], "court" | "warning" | "mist"> = {
+  paid: "court",
+  pending: "warning",
+  failed: "mist",
+};
+const BOOST_STATUS_LABEL: Record<EnrichedBoostHistoryEntry["paymentStatus"], string> = {
+  paid: "Payé",
+  pending: "En attente",
+  failed: "Échoué",
+};
 
 const TABS = ["Vue d'ensemble", "Mes stages", "Leads", "Statistiques"] as const;
 
@@ -36,9 +48,11 @@ const STATUS_LABEL: Record<OrganizerStageRow["status"], string> = {
 export function OrganizerDashboard({
   stages,
   revenueByMonth,
+  boostHistory,
 }: {
   stages: OrganizerStageRow[];
   revenueByMonth: { month: string; revenue: number; bookings: number }[];
+  boostHistory: EnrichedBoostHistoryEntry[];
 }) {
   const [tab, setTab] = useState<(typeof TABS)[number]>("Vue d'ensemble");
   const totalRevenue = stages.reduce((s, x) => s + x.revenue, 0);
@@ -128,10 +142,17 @@ export function OrganizerDashboard({
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1.5">
                           <Badge tone={STATUS_TONE[s.status]}>{STATUS_LABEL[s.status]}</Badge>
-                          {s.boosted && (
+                          {s.boosted ? (
                             <Badge tone="citron">
                               <Zap size={11} /> Boosté
                             </Badge>
+                          ) : (
+                            <Link
+                              href={`/organisateurs/stages/${s.id}/booster`}
+                              className="inline-flex items-center gap-1 text-xs font-semibold text-court-600 hover:text-court-700"
+                            >
+                              <Zap size={12} /> Booster
+                            </Link>
                           )}
                         </div>
                       </td>
@@ -144,6 +165,38 @@ export function OrganizerDashboard({
                 </tbody>
               </table>
             </div>
+
+            {boostHistory.length > 0 && (
+              <div className="mt-8">
+                <h3 className="font-display font-semibold text-ink">Historique des mises en avant</h3>
+                <div className="mt-4 overflow-hidden rounded-lg border border-mist-200 bg-white">
+                  <table className="w-full text-left text-sm">
+                    <thead className="bg-mist-50 text-xs uppercase tracking-wide text-mist-500">
+                      <tr>
+                        <th className="px-4 py-3 font-semibold">Stage</th>
+                        <th className="px-4 py-3 font-semibold">Date</th>
+                        <th className="px-4 py-3 font-semibold">Montant</th>
+                        <th className="px-4 py-3 font-semibold">Statut</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {boostHistory.map((b) => (
+                        <tr key={b.id} className="border-t border-mist-100">
+                          <td className="px-4 py-3 font-medium text-ink">{b.stageTitle}</td>
+                          <td className="px-4 py-3 text-mist-600">{formatDateLong(b.createdAt)}</td>
+                          <td className="px-4 py-3 text-mist-600">{formatPrice(b.amountPaid)}</td>
+                          <td className="px-4 py-3">
+                            <Badge tone={BOOST_STATUS_TONE[b.paymentStatus]}>
+                              {b.active ? "Actif" : BOOST_STATUS_LABEL[b.paymentStatus]}
+                            </Badge>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
           </motion.div>
         )}
 
@@ -164,7 +217,10 @@ export function OrganizerDashboard({
                     <div className="flex items-center justify-between">
                       <p className="text-sm font-medium text-ink">{s.title}</p>
                       {!s.boosted && (
-                        <Link href="/organisateurs/tarifs" className="inline-flex items-center gap-1 text-xs font-semibold text-court-600 hover:text-court-700">
+                        <Link
+                          href={`/organisateurs/stages/${s.id}/booster`}
+                          className="inline-flex items-center gap-1 text-xs font-semibold text-court-600 hover:text-court-700"
+                        >
                           <Zap size={12} /> Booster
                         </Link>
                       )}

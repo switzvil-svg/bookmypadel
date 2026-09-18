@@ -129,9 +129,12 @@ export function citiesFrom(stages: Stage[]): string[] {
 export async function getOrganizerStageRows(organizerId: string): Promise<OrganizerStageRow[]> {
   try {
     const rows = await listStagesByOrganizer(organizerId);
-    // Views/bookings/revenue/boosted aren't tracked anywhere yet (no page-
-    // view analytics, no booking pipeline beyond leads) — reporting them as
-    // 0 is the honest value, not a placeholder to fill in later.
+    // Views/bookings/revenue aren't tracked anywhere yet (no page-view
+    // analytics, no booking pipeline beyond leads) — reporting them as 0 is
+    // the honest value, not a placeholder to fill in later. `boosted` is
+    // real data, just not resolvable here without importing lib/boosts (that
+    // would create a stages.ts <-> boosts.ts import cycle) — callers merge
+    // it in via hasActiveBoost() per row (see tableau-de-bord/page.tsx).
     return rows.map((row) => ({
       id: row.id,
       title: row.title,
@@ -174,10 +177,10 @@ function computeDurationDays(start: string, end: string): number {
 export async function createStageForOrganizer(
   organizerId: string,
   input: StageFormInput
-): Promise<{ slug: string }> {
+): Promise<{ id: string; slug: string }> {
   const slug = await generateUniqueSlug(input.title);
 
-  await createStage({
+  const created = await createStage({
     slug,
     organizerId,
     title: input.title,
@@ -196,7 +199,7 @@ export async function createStageForOrganizer(
     photos: input.photos,
   });
 
-  return { slug };
+  return { id: created.id, slug };
 }
 
 export async function updateStageForOrganizer(

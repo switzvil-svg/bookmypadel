@@ -5,6 +5,7 @@ export const COMMISSION_RATE = 0.05;
 
 export type LeadStatus = "pending" | "confirmed" | "declined";
 export type UserRole = "player" | "organizer" | "admin";
+export type BoostPaymentStatus = "pending" | "paid" | "failed";
 
 export interface DbUser {
   id: string;
@@ -36,6 +37,18 @@ export interface DbStage {
   photos: string;
   featured: number;
   popular: number;
+  created_at: string;
+}
+
+export interface DbBoost {
+  id: string;
+  stage_id: string;
+  organizer_id: string;
+  started_at: string;
+  expires_at: string;
+  amount_paid: number;
+  payment_status: BoostPaymentStatus;
+  stripe_payment_id: string | null;
   created_at: string;
 }
 
@@ -372,4 +385,120 @@ export async function stageSlugExists(slug: string): Promise<boolean> {
   const db = await getDb();
   const row = await db.prepare("SELECT 1 FROM stages WHERE slug = ?").bind(slug).first();
   return row != null;
+}
+
+// ---- boosts ----
+
+// SQLite's datetime('now') and our ISO-formatted (toISOString()) columns use
+// different separators ("T" vs " ") — comparing them as strings would put
+// "T" (0x54) ahead of " " (0x20) for same-day timestamps and could read an
+// already-expired boost as still active. strftime with the ISO format string
+// keeps "now" in the exact same shape as every stored timestamp.
+const SQL_NOW_ISO = "strftime('%Y-%m-%dT%H:%M:%fZ','now')";
+
+export async function createPendingBoost(
+  stageId: string,
+  organizerId: string,
+  amountPaid: number
+): Promise<DbBoost> {
+  const now = new Date().toISOString();
+  const boost: DbBoost = {
+    id: crypto.randomUUID(),
+    stage_id: stageId,
+    organizer_id: organizerId,
+    // Placeholders — meaningless while pending (excluded from every "active"
+    // query below), overwritten with real values by confirmBoostPayment().
+    started_at: now,
+    expires_at: now,
+    amount_paid: amountPaid,
+    payment_status: "pending",
+    stripe_payment_id: null,
+    created_at: now,
+  };
+  const db = await getDb();
+  await db
+    .prepare(
+      `INSERT INTO boosts (id, stage_id, organizer_id, started_at, expires_at, amount_paid, payment_status, stripe_payment_id, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    )
+    .bind(
+      boost.id,
+      boost.stage_id,
+      boost.organizer_id,
+      boost.started_at,
+      boost.expires_at,
+      boost.amount_paid,
+      boost.payment_status,
+      boost.stripe_payment_id,
+      boost.created_at
+    )
+    .run();
+  return boost;
+}
+
+export async function confirmBoostPayment(
+  boostId: string,
+  stripePaymentId: string,
+  durationDays: number
+): Promise<void> {
+  const startedAt = new Date();
+  const expiresAt = new Date(startedAt.getTime() + durationDays * 24 * 60 * 60 * 1000);
+  const db = await getDb();
+  await db
+    .prepare(
+      `UPDATE boosts SET payment_status = 'paid', started_at = ?, expires_at = ?, stripe_payment_id = ?
+       WHERE id = ? AND payment_status != 'paid'`
+    )
+    .bind(startedAt.toISOString(), expiresAt.toISOString(), stripePaymentId, boostId)
+    .run();
+}
+
+export async function getBoostById(id: string): Promise<DbBoost | undefined> {
+  const db = await getDb();
+  const row = await db.prepare("SELECT * FROM boosts WHERE id = ?").bind(id).first<DbBoost>();
+  return row ?? undefined;
+}
+
+export async function countActiveBoosts(): Promise<number> {
+  const db = await getDb();
+  const row = await db
+    .prepare(
+      `SELECT COUNT(*) as n FROM boosts WHERE payment_status = 'paid' AND expires_at > ${SQL_NOW_ISO}`
+    )
+    .first<{ n: number }>();
+  return row?.n ?? 0;
+}
+
+export async function getActiveBoostForStage(stageId: string): Promise<DbBoost | undefined> {
+  const db = await getDb();
+  const row = await db
+    .prepare(
+      `SELECT * FROM boosts WHERE stage_id = ? AND payment_status = 'paid' AND expires_at > ${SQL_NOW_ISO}
+       ORDER BY expires_at DESC LIMIT 1`
+    )
+    .bind(stageId)
+    .first<DbBoost>();
+  return row ?? undefined;
+}
+
+export async function listBoostsByOrganizer(organizerId: string): Promise<DbBoost[]> {
+  const db = await getDb();
+  const { results } = await db
+    .prepare("SELECT * FROM boosts WHERE organizer_id = ? ORDER BY created_at DESC")
+    .bind(organizerId)
+    .all<DbBoost>();
+  return results;
+}
+
+export async function listActiveBoostedStages(): Promise<DbStage[]> {
+  const db = await getDb();
+  const { results } = await db
+    .prepare(
+      `SELECT stages.* FROM stages
+       JOIN boosts ON boosts.stage_id = stages.id
+       WHERE boosts.payment_status = 'paid' AND boosts.expires_at > ${SQL_NOW_ISO}
+       ORDER BY boosts.expires_at DESC`
+    )
+    .all<DbStage>();
+  return results;
 }
