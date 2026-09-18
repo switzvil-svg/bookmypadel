@@ -84,6 +84,26 @@ export default async function HomePage() {
         </RevealGroup>
       </section>
 
+      {/* Stages à la une */}
+      <section className="bg-court-50/60 py-16 sm:py-20">
+        <div className="container-page">
+          <Reveal className="flex items-end justify-between gap-4">
+            <div>
+              <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">Stages à la une</h2>
+              <p className="mt-1 text-sm text-mist-600">Sélectionnés et mis en avant par nos organisateurs partenaires.</p>
+            </div>
+          </Reveal>
+
+          <RevealGroup className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
+            {featured.map((s) => (
+              <RevealItem key={s.id}>
+                <StageCard stage={s} />
+              </RevealItem>
+            ))}
+          </RevealGroup>
+        </div>
+      </section>
+
       {/* Stages populaires */}
       <section className="container-page py-16 sm:py-20">
         <Reveal className="flex items-end justify-between gap-4">
@@ -103,26 +123,6 @@ export default async function HomePage() {
             </RevealItem>
           ))}
         </RevealGroup>
-      </section>
-
-      {/* Stages à la une */}
-      <section className="bg-court-50/60 py-16 sm:py-20">
-        <div className="container-page">
-          <Reveal className="flex items-end justify-between gap-4">
-            <div>
-              <h2 className="font-display text-2xl font-bold text-ink sm:text-3xl">Stages à la une</h2>
-              <p className="mt-1 text-sm text-mist-600">Sélectionnés et mis en avant par nos organisateurs partenaires.</p>
-            </div>
-          </Reveal>
-
-          <RevealGroup className="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
-            {featured.map((s) => (
-              <RevealItem key={s.id}>
-                <StageCard stage={s} />
-              </RevealItem>
-            ))}
-          </RevealGroup>
-        </div>
       </section>
 
       {/* Par destination */}
