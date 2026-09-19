@@ -58,7 +58,14 @@ export default async function StageDetailPage({ params }: { params: { slug: stri
 
       {/* Gallery */}
       <Reveal className="mt-6">
-        <Gallery seeds={stage.gallerySeeds.concat(stage.coverSeed)} title={stage.title} />
+        <Gallery
+          images={
+            stage.photos.length > 0
+              ? stage.photos.map((url, i) => ({ seed: `${stage.id}-photo-${i}`, url }))
+              : stage.gallerySeeds.concat(stage.coverSeed).map((seed) => ({ seed }))
+          }
+          title={stage.title}
+        />
       </Reveal>
 
       <div className="mt-10 grid grid-cols-1 gap-10 lg:grid-cols-[1fr_360px]">

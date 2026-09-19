@@ -309,14 +309,18 @@ trois causes cumulées expliquaient qu'un stage créé n'apparaissait jamais nul
   visible immédiatement sur `/stages/[slug]`, `/recherche` et l'accueil (sans rebuild) → clic
   « Voir l'offre » par un joueur → lead créé avec le bon `redirectUrl` (le lien du formulaire, pas
   un coach mock) → visible dans le tableau de bord *de cet organisateur* → visible dans `/admin`.
-- **Non traité, à signaler** : les photos uploadées sont bien stockées sur le stage (`stages.photos`
-  en JSON) mais ne sont toujours pas rendues comme vraies images nulle part sur le site — `Gallery`
-  et `CoverArt` ne savent afficher que des dégradés générés déterministes à partir d'un seed
-  (`coverSeed`/`gallerySeeds`), jamais une vraie URL d'image. Adapter ces composants pour préférer
-  une photo réelle quand elle existe serait la suite logique. Les dropdowns de villes
-  (`components/search/filters.tsx`, `search-bar.tsx`) listent encore uniquement les villes des 14
-  stages de démo (`@/data/stages`'s `cities`), pas les nouvelles villes ajoutées par des
-  organisateurs — cosmétique, n'affecte pas les résultats de recherche eux-mêmes.
+- **Photos réelles affichées** (corrigé après coup, voir commit dédié) : `CoverArt`
+  (`components/ui/cover-art.tsx`) accepte maintenant un `photoUrl` optionnel — s'il est fourni, un
+  vrai `<Image>` (`unoptimized`, les URLs d'upload `/api/uploads/stages/...` sont same-origin) prend
+  la place du dégradé généré. `StageCard` passe `stage.photos[0]`, et `Gallery`
+  (`components/stage/gallery.tsx`, prop renommée `images: {seed, url?}[]`) construit ses vignettes à
+  partir des vraies photos quand elles existent, sinon retombe sur `gallerySeeds` comme avant.
+  `Stage.photos` (JSON parsé depuis `stages.photos`) a été ajouté au type et à `enrichStage()` pour
+  ça. Les stages de démo (sans photo uploadée) continuent d'utiliser le dégradé généré comme avant —
+  rien n'a changé pour eux. Les dropdowns de villes (`components/search/filters.tsx`,
+  `search-bar.tsx`) listent encore uniquement les villes des 14 stages de démo (`@/data/stages`'s
+  `cities`), pas les nouvelles villes ajoutées par des organisateurs — cosmétique, n'affecte pas les
+  résultats de recherche eux-mêmes.
 
 ## Mise en avant (boosts) — `migrations/0005_boosts.sql`
 

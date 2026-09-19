@@ -58,6 +58,7 @@ function makeStage(partial: {
     maxParticipants: partial.maxParticipants,
     coverSeed: partial.id,
     gallerySeeds: [partial.id + "-1", partial.id + "-2", partial.id + "-3", partial.id + "-4"],
+    photos: [],
     description: partial.description,
     program: PROGRAM_STANDARD,
     amenities: [...AMENITIES_BASE, ...(partial.extraAmenities ?? [])],

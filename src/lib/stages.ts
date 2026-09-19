@@ -84,6 +84,7 @@ export async function enrichStage(row: DbStage): Promise<Stage> {
     maxParticipants: row.spots_total,
     coverSeed: row.id,
     gallerySeeds: [row.id + "-1", row.id + "-2", row.id + "-3", row.id + "-4"],
+    photos: JSON.parse(row.photos || "[]"),
     description: row.description,
     program: PROGRAM_STANDARD,
     amenities: AMENITIES_BASE,

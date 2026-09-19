@@ -22,7 +22,12 @@ export function StageCard({ stage }: { stage: Stage }) {
       >
         <div className="relative h-48 overflow-hidden">
           <div className="h-full w-full transition-transform duration-500 ease-court group-hover:scale-105">
-            <CoverArt seed={stage.coverSeed} className="h-full w-full" rounded="rounded-none" />
+            <CoverArt
+              seed={stage.coverSeed}
+              photoUrl={stage.photos[0]}
+              className="h-full w-full"
+              rounded="rounded-none"
+            />
           </div>
           <div className="absolute left-3 top-3 flex flex-col gap-1.5">
             {stage.featured && <Badge tone="citron">À la une</Badge>}

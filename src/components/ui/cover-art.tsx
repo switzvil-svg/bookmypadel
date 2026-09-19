@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { CircleDot, Sun, Trophy, Waves, Zap, MapPin } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { hashSeed, pickFromSeed } from "@/lib/hash";
@@ -20,9 +21,19 @@ interface CoverArtProps {
   seed: string;
   className?: string;
   rounded?: string;
+  /** A real uploaded photo, when one exists — takes over the whole tile instead of the generated art. */
+  photoUrl?: string;
 }
 
-export function CoverArt({ seed, className, rounded = "rounded-lg" }: CoverArtProps) {
+export function CoverArt({ seed, className, rounded = "rounded-lg", photoUrl }: CoverArtProps) {
+  if (photoUrl) {
+    return (
+      <div className={cn("relative overflow-hidden bg-mist-100", rounded, className)}>
+        <Image src={photoUrl} alt="" fill sizes="50vw" className="object-cover" unoptimized />
+      </div>
+    );
+  }
+
   const gradient = pickFromSeed(seed, GRADIENTS);
   const Icon = pickFromSeed(seed + "icon", ICONS);
   const rotate = (hashSeed(seed) % 24) - 12;

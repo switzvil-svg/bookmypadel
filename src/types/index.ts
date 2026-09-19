@@ -60,6 +60,8 @@ export interface Stage {
   maxParticipants: number;
   coverSeed: string;
   gallerySeeds: string[];
+  /** Real photos uploaded by the organizer (R2 URLs) — empty for the demo/mock stages, which only have generated CoverArt. */
+  photos: string[];
   description: string;
   program: { day: string; title: string; description: string }[];
   amenities: string[];
