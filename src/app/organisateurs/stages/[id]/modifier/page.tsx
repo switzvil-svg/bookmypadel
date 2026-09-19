@@ -35,7 +35,8 @@ export default async function EditStagePage({ params }: { params: { id: string }
             end: stage.end_date,
             spots: stage.spots_total,
             price: stage.price_per_person,
-            accommodation: Boolean(stage.accommodation_included),
+            accommodationMode: stage.accommodation_mode,
+            priceWithAccommodation: stage.price_with_accommodation ?? 400,
             externalUrl: stage.external_url,
             photos: JSON.parse(stage.photos || "[]"),
           }}

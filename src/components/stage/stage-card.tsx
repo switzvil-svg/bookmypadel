@@ -65,6 +65,9 @@ export function StageCard({ stage }: { stage: Stage }) {
 
           <div className="flex items-end justify-between border-t border-mist-100 pt-3">
             <div>
+              {stage.accommodationMode === "optional" && (
+                <span className="block text-[11px] text-mist-500">à partir de</span>
+              )}
               <span className="text-lg font-bold text-ink">{formatPrice(stage.pricePerPerson)}</span>
               <span className="text-xs text-mist-500"> / pers.</span>
             </div>

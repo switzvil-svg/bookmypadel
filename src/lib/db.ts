@@ -6,6 +6,8 @@ export const COMMISSION_RATE = 0.05;
 export type LeadStatus = "pending" | "confirmed" | "declined";
 export type UserRole = "player" | "organizer" | "admin";
 export type BoostPaymentStatus = "pending" | "paid" | "failed";
+export type AccommodationMode = "none" | "included" | "optional";
+export type AccommodationChoice = "without" | "with";
 
 export interface DbUser {
   id: string;
@@ -33,6 +35,9 @@ export interface DbStage {
   spots_total: number;
   spots_left: number;
   accommodation_included: number;
+  accommodation_mode: AccommodationMode;
+  price_without_accommodation: number | null;
+  price_with_accommodation: number | null;
   external_url: string;
   photos: string;
   featured: number;
@@ -63,6 +68,7 @@ export interface DbLead {
   status: LeadStatus;
   booking_amount: number | null;
   commission_amount: number | null;
+  accommodation_choice: AccommodationChoice | null;
 }
 
 async function getDb(): Promise<D1Database> {
@@ -145,6 +151,7 @@ export async function createLead(input: {
   stageId: string;
   organizerId: string;
   redirectUrl: string;
+  accommodationChoice?: AccommodationChoice | null;
 }): Promise<DbLead> {
   const lead: DbLead = {
     id: crypto.randomUUID(),
@@ -157,12 +164,13 @@ export async function createLead(input: {
     status: "pending",
     booking_amount: null,
     commission_amount: null,
+    accommodation_choice: input.accommodationChoice ?? null,
   };
   const db = await getDb();
   await db
     .prepare(
-      `INSERT INTO leads (id, token, user_id, stage_id, organizer_id, created_at, redirect_url, status, booking_amount, commission_amount)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO leads (id, token, user_id, stage_id, organizer_id, created_at, redirect_url, status, booking_amount, commission_amount, accommodation_choice)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       lead.id,
@@ -174,7 +182,8 @@ export async function createLead(input: {
       lead.redirect_url,
       lead.status,
       lead.booking_amount,
-      lead.commission_amount
+      lead.commission_amount,
+      lead.accommodation_choice
     )
     .run();
   return lead;
@@ -242,7 +251,9 @@ export async function createStage(input: {
   startDate: string;
   endDate: string;
   spotsTotal: number;
-  accommodationIncluded: boolean;
+  accommodationMode: AccommodationMode;
+  priceWithoutAccommodation: number | null;
+  priceWithAccommodation: number | null;
   externalUrl: string;
   photos: string[];
 }): Promise<DbStage> {
@@ -262,7 +273,10 @@ export async function createStage(input: {
     end_date: input.endDate,
     spots_total: input.spotsTotal,
     spots_left: input.spotsTotal,
-    accommodation_included: input.accommodationIncluded ? 1 : 0,
+    accommodation_included: input.accommodationMode !== "none" ? 1 : 0,
+    accommodation_mode: input.accommodationMode,
+    price_without_accommodation: input.priceWithoutAccommodation,
+    price_with_accommodation: input.priceWithAccommodation,
     external_url: input.externalUrl,
     photos: JSON.stringify(input.photos),
     featured: 0,
@@ -272,8 +286,8 @@ export async function createStage(input: {
   const db = await getDb();
   await db
     .prepare(
-      `INSERT INTO stages (id, slug, organizer_id, title, city, region, country, level, description, price_per_person, duration_days, start_date, end_date, spots_total, spots_left, accommodation_included, external_url, photos, featured, popular, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+      `INSERT INTO stages (id, slug, organizer_id, title, city, region, country, level, description, price_per_person, duration_days, start_date, end_date, spots_total, spots_left, accommodation_included, accommodation_mode, price_without_accommodation, price_with_accommodation, external_url, photos, featured, popular, created_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
     )
     .bind(
       stage.id,
@@ -292,6 +306,9 @@ export async function createStage(input: {
       stage.spots_total,
       stage.spots_left,
       stage.accommodation_included,
+      stage.accommodation_mode,
+      stage.price_without_accommodation,
+      stage.price_with_accommodation,
       stage.external_url,
       stage.photos,
       stage.featured,
@@ -343,7 +360,9 @@ export async function updateStage(
     startDate: string;
     endDate: string;
     spotsTotal: number;
-    accommodationIncluded: boolean;
+    accommodationMode: AccommodationMode;
+    priceWithoutAccommodation: number | null;
+    priceWithAccommodation: number | null;
     externalUrl: string;
     photos: string[];
   }
@@ -353,7 +372,9 @@ export async function updateStage(
     .prepare(
       `UPDATE stages SET title = ?, city = ?, region = ?, country = ?, level = ?, description = ?,
        price_per_person = ?, duration_days = ?, start_date = ?, end_date = ?, spots_total = ?,
-       spots_left = ?, accommodation_included = ?, external_url = ?, photos = ? WHERE id = ?`
+       spots_left = ?, accommodation_included = ?, accommodation_mode = ?,
+       price_without_accommodation = ?, price_with_accommodation = ?, external_url = ?, photos = ?
+       WHERE id = ?`
     )
     .bind(
       input.title,
@@ -368,7 +389,10 @@ export async function updateStage(
       input.endDate,
       input.spotsTotal,
       input.spotsTotal,
-      input.accommodationIncluded ? 1 : 0,
+      input.accommodationMode !== "none" ? 1 : 0,
+      input.accommodationMode,
+      input.priceWithoutAccommodation,
+      input.priceWithAccommodation,
       input.externalUrl,
       JSON.stringify(input.photos),
       id

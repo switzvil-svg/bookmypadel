@@ -55,6 +55,8 @@ function makeStage(partial: {
     rating,
     reviewCount: reviews.length * 11 + 6,
     accommodationIncluded: partial.accommodation,
+    accommodationMode: partial.accommodation ? "included" : "none",
+    priceWithAccommodation: null,
     maxParticipants: partial.maxParticipants,
     coverSeed: partial.id,
     gallerySeeds: [partial.id + "-1", partial.id + "-2", partial.id + "-3", partial.id + "-4"],

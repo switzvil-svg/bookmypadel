@@ -7,7 +7,7 @@ import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StepIndicator } from "@/components/booking/step-indicator";
-import { LEVEL_LABEL } from "@/types";
+import { LEVEL_LABEL, AccommodationMode } from "@/types";
 import { CoverArt } from "@/components/ui/cover-art";
 import { PhotoUploader } from "./photo-uploader";
 
@@ -28,10 +28,21 @@ interface StageFormState {
   end: string;
   spots: number;
   price: number;
-  accommodation: boolean;
+  accommodationMode: AccommodationMode;
+  priceWithAccommodation: number;
   externalUrl: string;
   photos: string[];
 }
+
+const ACCOMMODATION_OPTIONS: { value: AccommodationMode; label: string; hint: string }[] = [
+  { value: "none", label: "Pas proposé", hint: "Le joueur s'organise lui-même pour se loger." },
+  { value: "included", label: "Inclus dans le prix", hint: "Un seul prix, tout compris." },
+  {
+    value: "optional",
+    label: "En option pour le joueur",
+    hint: "Deux prix : le joueur choisit avec ou sans logement.",
+  },
+];
 
 const EMPTY_FORM: StageFormState = {
   title: "",
@@ -42,7 +53,8 @@ const EMPTY_FORM: StageFormState = {
   end: "",
   spots: 10,
   price: 300,
-  accommodation: false,
+  accommodationMode: "none",
+  priceWithAccommodation: 400,
   externalUrl: "",
   photos: [],
 };
@@ -71,6 +83,10 @@ export function StageFormWizard({
 
   async function handlePublish() {
     setPublishError(null);
+    if (form.accommodationMode === "optional" && form.priceWithAccommodation <= form.price) {
+      setPublishError("Le prix avec logement doit être supérieur au prix sans logement.");
+      return;
+    }
     setPublishing(true);
     try {
       const res = await fetch(isEdit ? `/api/organizer/stages/${editStageId}` : "/api/organizer/stages", {
@@ -85,7 +101,9 @@ export function StageFormWizard({
           end: form.end,
           spots: form.spots,
           price: form.price,
-          accommodation: form.accommodation,
+          accommodationMode: form.accommodationMode,
+          priceWithAccommodation:
+            form.accommodationMode === "optional" ? form.priceWithAccommodation : null,
           externalUrl: form.externalUrl,
           photos: form.photos,
         }),
@@ -186,18 +204,53 @@ export function StageFormWizard({
               <h2 className="font-display text-xl font-bold text-ink">Tarifs & hébergement</h2>
               <div className="mt-5 max-w-xl space-y-4">
                 <div>
-                  <label className="text-xs font-semibold uppercase tracking-wide text-mist-500">Prix par personne (€)</label>
+                  <label className="text-xs font-semibold uppercase tracking-wide text-mist-500">
+                    {form.accommodationMode === "optional" ? "Prix sans logement (€)" : "Prix par personne (€)"}
+                  </label>
                   <Input type="number" min={0} className="mt-1.5" value={form.price} onChange={(e) => update("price", Number(e.target.value))} />
                 </div>
-                <label className="flex cursor-pointer items-center justify-between rounded-md border border-mist-200 p-3">
-                  <span className="text-sm font-medium text-ink">Hébergement inclus</span>
-                  <input
-                    type="checkbox"
-                    checked={form.accommodation}
-                    onChange={(e) => update("accommodation", e.target.checked)}
-                    className="h-4 w-4 cursor-pointer rounded border-mist-300 text-court-500 focus:ring-court-500"
-                  />
-                </label>
+                <div>
+                  <label className="text-xs font-semibold uppercase tracking-wide text-mist-500">Hébergement</label>
+                  <div className="mt-1.5 space-y-2">
+                    {ACCOMMODATION_OPTIONS.map((opt) => (
+                      <label
+                        key={opt.value}
+                        className="flex cursor-pointer items-start gap-3 rounded-md border border-mist-200 p-3 has-[:checked]:border-court-500 has-[:checked]:bg-court-50"
+                      >
+                        <input
+                          type="radio"
+                          name="accommodationMode"
+                          className="mt-0.5 h-4 w-4 cursor-pointer text-court-500 focus:ring-court-500"
+                          checked={form.accommodationMode === opt.value}
+                          onChange={() => update("accommodationMode", opt.value)}
+                        />
+                        <span>
+                          <span className="block text-sm font-medium text-ink">{opt.label}</span>
+                          <span className="block text-xs text-mist-500">{opt.hint}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+                {form.accommodationMode === "optional" && (
+                  <div>
+                    <label className="text-xs font-semibold uppercase tracking-wide text-mist-500">
+                      Prix avec logement (€)
+                    </label>
+                    <Input
+                      type="number"
+                      min={0}
+                      className="mt-1.5"
+                      value={form.priceWithAccommodation}
+                      onChange={(e) => update("priceWithAccommodation", Number(e.target.value))}
+                    />
+                    {form.priceWithAccommodation <= form.price && (
+                      <p className="mt-1.5 text-xs text-destructive">
+                        Doit être supérieur au prix sans logement ({form.price} €).
+                      </p>
+                    )}
+                  </div>
+                )}
                 <div>
                   <label className="text-xs font-semibold uppercase tracking-wide text-mist-500">
                     Lien de contact (site, formulaire ou WhatsApp)

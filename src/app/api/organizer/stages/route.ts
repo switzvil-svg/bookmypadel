@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { createStageForOrganizer } from "@/lib/stages";
-import { LEVEL_LABEL } from "@/types";
+import { LEVEL_LABEL, AccommodationMode } from "@/types";
+
+const ACCOMMODATION_MODES: AccommodationMode[] = ["none", "included", "optional"];
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +22,11 @@ export async function POST(req: NextRequest) {
   const end = typeof body?.end === "string" ? body.end : "";
   const spots = Number(body?.spots);
   const price = Number(body?.price);
-  const accommodation = Boolean(body?.accommodation);
+  const accommodationMode: AccommodationMode = ACCOMMODATION_MODES.includes(body?.accommodationMode)
+    ? body.accommodationMode
+    : "none";
+  const priceWithAccommodation =
+    body?.priceWithAccommodation != null ? Number(body.priceWithAccommodation) : null;
   const externalUrl = typeof body?.externalUrl === "string" ? body.externalUrl.trim() : "";
   const photos = Array.isArray(body?.photos) ? body.photos.filter((p: unknown) => typeof p === "string") : [];
 
@@ -42,6 +48,20 @@ export async function POST(req: NextRequest) {
   if (!Number.isFinite(price) || price < 0) {
     return NextResponse.json({ error: "Prix invalide." }, { status: 400 });
   }
+  if (accommodationMode === "optional") {
+    if (!Number.isFinite(priceWithAccommodation)) {
+      return NextResponse.json(
+        { error: "Le prix avec logement est requis pour un hébergement en option." },
+        { status: 400 }
+      );
+    }
+    if ((priceWithAccommodation as number) <= price) {
+      return NextResponse.json(
+        { error: "Le prix avec logement doit être supérieur au prix sans logement." },
+        { status: 400 }
+      );
+    }
+  }
   if (!externalUrl) {
     return NextResponse.json({ error: "Lien de contact requis." }, { status: 400 });
   }
@@ -56,7 +76,8 @@ export async function POST(req: NextRequest) {
       end,
       spots,
       price,
-      accommodation,
+      accommodationMode,
+      priceWithAccommodation: accommodationMode === "optional" ? priceWithAccommodation : null,
       externalUrl,
       photos,
     });

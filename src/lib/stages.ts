@@ -1,6 +1,7 @@
 import { Coach, OrganizerStageRow, Stage, Level } from "@/types";
 import {
   DbStage,
+  AccommodationMode,
   createStage,
   updateStage,
   deleteStage,
@@ -81,6 +82,8 @@ export async function enrichStage(row: DbStage): Promise<Stage> {
     rating,
     reviewCount: reviews.length * 11 + 6,
     accommodationIncluded: Boolean(row.accommodation_included),
+    accommodationMode: row.accommodation_mode,
+    priceWithAccommodation: row.price_with_accommodation,
     maxParticipants: row.spots_total,
     coverSeed: row.id,
     gallerySeeds: [row.id + "-1", row.id + "-2", row.id + "-3", row.id + "-4"],
@@ -113,6 +116,17 @@ export async function getStageBySlug(slug: string): Promise<Stage | undefined> {
     return await enrichStage(row);
   } catch (err) {
     console.error("[lib/stages] getStageBySlug(%s) failed:", slug, err);
+    return undefined;
+  }
+}
+
+export async function getStageById(id: string): Promise<Stage | undefined> {
+  try {
+    const row = await getStageByIdDb(id);
+    if (!row) return undefined;
+    return await enrichStage(row);
+  } catch (err) {
+    console.error("[lib/stages] getStageById(%s) failed:", id, err);
     return undefined;
   }
 }
@@ -164,7 +178,8 @@ interface StageFormInput {
   end: string;
   spots: number;
   price: number;
-  accommodation: boolean;
+  accommodationMode: AccommodationMode;
+  priceWithAccommodation: number | null;
   externalUrl: string;
   photos: string[];
 }
@@ -195,7 +210,9 @@ export async function createStageForOrganizer(
     startDate: input.start,
     endDate: input.end,
     spotsTotal: input.spots,
-    accommodationIncluded: input.accommodation,
+    accommodationMode: input.accommodationMode,
+    priceWithoutAccommodation: input.accommodationMode === "optional" ? input.price : null,
+    priceWithAccommodation: input.accommodationMode === "optional" ? input.priceWithAccommodation : null,
     externalUrl: input.externalUrl,
     photos: input.photos,
   });
@@ -225,7 +242,9 @@ export async function updateStageForOrganizer(
     startDate: input.start,
     endDate: input.end,
     spotsTotal: input.spots,
-    accommodationIncluded: input.accommodation,
+    accommodationMode: input.accommodationMode,
+    priceWithoutAccommodation: input.accommodationMode === "optional" ? input.price : null,
+    priceWithAccommodation: input.accommodationMode === "optional" ? input.priceWithAccommodation : null,
     externalUrl: input.externalUrl,
     photos: input.photos,
   });

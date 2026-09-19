@@ -121,7 +121,7 @@ export function Filters({
       </div>
 
       <label className="flex cursor-pointer items-center justify-between rounded-md border border-mist-200 p-3">
-        <span className="text-sm font-medium text-ink">Hébergement inclus</span>
+        <span className="text-sm font-medium text-ink">Hébergement proposé</span>
         <input
           type="checkbox"
           checked={value.accommodationOnly}

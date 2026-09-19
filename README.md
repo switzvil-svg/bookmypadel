@@ -130,6 +130,9 @@ migrations pas encore appliquées sont rejouées) :
 - `migrations/0003_stages.sql` — table `stages` (voir section **Stages** plus bas)
 - `migrations/0004_seed_demo_stages.sql` — insère les 14 stages de démo dans `stages`
 - `migrations/0005_boosts.sql` — table `boosts` (voir section **Mise en avant (boosts)** plus bas)
+- `migrations/0006_accommodation.sql` — ajoute `accommodation_mode`/`price_without_accommodation`/
+  `price_with_accommodation` sur `stages`, `accommodation_choice` sur `leads` (voir section
+  **Option hébergement** plus bas)
 
 Toutes les fonctions de `db.ts` sont **async** (API D1 : `.prepare(sql).bind(...).first()/.all()/
 .run()`, accessible via `getCloudflareContext({ async: true })`) — contrairement à l'ancienne
@@ -321,6 +324,46 @@ trois causes cumulées expliquaient qu'un stage créé n'apparaissait jamais nul
   `search-bar.tsx`) listent encore uniquement les villes des 14 stages de démo (`@/data/stages`'s
   `cities`), pas les nouvelles villes ajoutées par des organisateurs — cosmétique, n'affecte pas les
   résultats de recherche eux-mêmes.
+
+## Option hébergement — `migrations/0006_accommodation.sql`
+
+Un stage a l'un de trois modes d'hébergement, choisi à la création/édition
+(`stages.accommodation_mode`, type `AccommodationMode` = `"none" | "included" | "optional"`) :
+
+- **`none`** (par défaut, comportement historique) — un seul prix (`price_per_person`), pas de
+  mention d'hébergement.
+- **`included`** — toujours un seul prix, mais le badge « Hébergement inclus » s'affiche à côté
+  (`OfferCTA`).
+- **`optional`** — deux prix distincts : `price_without_accommodation` (dupliqué depuis
+  `price_per_person`, c'est la même valeur que le formulaire appelle « prix sans logement ») et
+  `price_with_accommodation`. Le joueur choisit sur la fiche stage (`OfferCTA`, sélecteur radio) ;
+  son choix est envoyé à `POST /api/leads` et stocké sur `leads.accommodation_choice`
+  (`"without" | "with"`, `NULL` si le mode n'est pas `optional`).
+
+**Colonne héritée `stages.accommodation_included`** : toujours présente (elle pilotait déjà le
+filtre de recherche « Hébergement proposé »), mais maintenant **dérivée automatiquement** dans
+`src/lib/db.ts` (`createStage`/`updateStage`) à partir de `accommodation_mode` (`true` si le mode
+n'est pas `"none"`) — plus jamais passée explicitement par les appelants.
+
+- **Formulaire** (`stage-form-wizard.tsx`) : radio à 3 choix ; le champ prix existant devient
+  conditionnellement labellisé « Prix sans logement » et un second champ « Prix avec logement »
+  apparaît pour le mode optionnel, avec validation (prix avec > prix sans) côté client ET serveur
+  (`/api/organizer/stages` POST/PATCH). Le formulaire d'édition pré-remplit ces champs depuis la
+  base.
+- **Affichage public** : `StageCard` affiche « à partir de X € » pour le mode optionnel ;
+  `OfferCTA` (fiche stage) affiche le badge « Hébergement inclus » pour `included`, ou les deux
+  options avec leurs prix pour `optional` (le prix affiché en haut change selon la sélection).
+- **Bug préexistant corrigé au passage** : `OfferCTA` envoyait `stage.id` (l'UUID réel) à
+  `/api/leads`, mais la route faisait `getStageBySlug(stageId)` — ne fonctionnait que par
+  coïncidence pour les stages de démo (où `id === slug`), et échouait silencieusement (« Stage
+  introuvable ») pour *tous* les stages créés par un organisateur réel. Corrigé en ajoutant
+  `getStageById()` à `src/lib/stages.ts` et en l'utilisant dans la route — repéré et corrigé en
+  touchant ce fichier pour l'option hébergement, sinon la fonctionnalité n'aurait jamais pu être
+  exercée sur un vrai stage.
+- **Testé de bout en bout** via `cf:preview` : les 3 modes créés et vérifiés (prix affichés
+  corrects sur la fiche et la carte), validation serveur du prix (400 si prix avec ≤ prix sans),
+  édition d'un stage pour changer de mode, lead créé avec le bon `accommodation_choice`, colonne
+  « Logement » du tableau de bord organisateur vérifiée dans un vrai navigateur (state client).
 
 ## Mise en avant (boosts) — `migrations/0005_boosts.sql`
 

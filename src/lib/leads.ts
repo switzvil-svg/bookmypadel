@@ -14,6 +14,7 @@ export interface EnrichedLead {
   stageId: string;
   organizerId: string;
   organizerClub: string;
+  accommodationChoice: DbLead["accommodation_choice"];
 }
 
 export async function enrichLead(lead: DbLead): Promise<EnrichedLead> {
@@ -43,5 +44,6 @@ export async function enrichLead(lead: DbLead): Promise<EnrichedLead> {
     stageId: lead.stage_id,
     organizerId: lead.organizer_id,
     organizerClub,
+    accommodationChoice: lead.accommodation_choice,
   };
 }

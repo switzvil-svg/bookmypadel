@@ -12,6 +12,11 @@ const STATUS_LABEL: Record<string, string> = {
   declined: "Pas donné suite",
 };
 
+const ACCOMMODATION_CHOICE_LABEL: Record<string, string> = {
+  without: "Sans logement",
+  with: "Avec logement",
+};
+
 function csvEscape(value: string) {
   if (/[",\n]/.test(value)) return `"${value.replace(/"/g, '""')}"`;
   return value;
@@ -31,6 +36,7 @@ export async function GET() {
     "Joueur",
     "Email",
     "Stage",
+    "Logement",
     "Statut",
     "Montant réservation (€)",
     "Commission (€)",
@@ -41,6 +47,7 @@ export async function GET() {
     l.userName,
     l.userEmail,
     l.stageTitle,
+    l.accommodationChoice ? ACCOMMODATION_CHOICE_LABEL[l.accommodationChoice] : "",
     STATUS_LABEL[l.status] ?? l.status,
     l.bookingAmount != null ? l.bookingAmount.toFixed(2) : "",
     l.commissionAmount != null ? l.commissionAmount.toFixed(2) : "",

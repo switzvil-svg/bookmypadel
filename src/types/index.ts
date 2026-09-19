@@ -9,6 +9,9 @@ export const LEVEL_LABEL: Record<Level, string> = {
 
 export type ContactMethod = "site" | "whatsapp" | "formulaire";
 
+export type AccommodationMode = "none" | "included" | "optional";
+export type AccommodationChoice = "without" | "with";
+
 export const CONTACT_METHOD_LABEL: Record<ContactMethod, string> = {
   site: "Site web",
   whatsapp: "WhatsApp",
@@ -56,7 +59,11 @@ export interface Stage {
   spotsLeft: number;
   rating: number;
   reviewCount: number;
+  /** Legacy/derived: true when accommodationMode isn't "none" — drives the search filter checkbox. */
   accommodationIncluded: boolean;
+  accommodationMode: AccommodationMode;
+  /** Only set when accommodationMode is "optional" — pricePerPerson is the "without" price in that case. */
+  priceWithAccommodation: number | null;
   maxParticipants: number;
   coverSeed: string;
   gallerySeeds: string[];

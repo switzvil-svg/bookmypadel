@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSessionUser } from "@/lib/session";
 import { createLead } from "@/lib/db";
-import { getStageBySlug } from "@/lib/stages";
+import { getStageById } from "@/lib/stages";
+import { AccommodationChoice } from "@/types";
 
 export const dynamic = "force-dynamic";
 
@@ -13,16 +14,23 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => null) as any;
   const stageId = typeof body?.stageId === "string" ? body.stageId : "";
-  const stage = await getStageBySlug(stageId);
+  const stage = await getStageById(stageId);
   if (!stage) {
     return NextResponse.json({ error: "Stage introuvable." }, { status: 404 });
   }
+
+  const accommodationChoice: AccommodationChoice | null =
+    stage.accommodationMode === "optional" &&
+    (body?.accommodationChoice === "with" || body?.accommodationChoice === "without")
+      ? body.accommodationChoice
+      : null;
 
   const lead = await createLead({
     userId: user.id,
     stageId: stage.id,
     organizerId: stage.coach.id,
     redirectUrl: stage.coach.externalUrl,
+    accommodationChoice,
   });
 
   return NextResponse.json({

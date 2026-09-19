@@ -16,7 +16,13 @@ interface Lead {
   userName: string;
   userEmail: string;
   stageTitle: string;
+  accommodationChoice: "without" | "with" | null;
 }
+
+const ACCOMMODATION_CHOICE_LABEL: Record<"without" | "with", string> = {
+  without: "Sans logement",
+  with: "Avec logement",
+};
 
 const STATUS_LABEL: Record<Lead["status"], string> = {
   pending: "En attente",
@@ -88,6 +94,7 @@ export function LeadsPanel() {
               <tr>
                 <th className="px-4 py-3 font-semibold">Joueur</th>
                 <th className="px-4 py-3 font-semibold">Stage</th>
+                <th className="px-4 py-3 font-semibold">Logement</th>
                 <th className="px-4 py-3 font-semibold">Date du clic</th>
                 <th className="px-4 py-3 font-semibold">Statut</th>
                 <th className="px-4 py-3 font-semibold">Montant</th>
@@ -103,6 +110,9 @@ export function LeadsPanel() {
                     <p className="text-xs text-mist-500">{l.userEmail}</p>
                   </td>
                   <td className="max-w-[220px] px-4 py-3 text-mist-600">{l.stageTitle}</td>
+                  <td className="px-4 py-3 text-mist-600">
+                    {l.accommodationChoice ? ACCOMMODATION_CHOICE_LABEL[l.accommodationChoice] : "—"}
+                  </td>
                   <td className="px-4 py-3 text-mist-600">{formatDateLong(l.createdAt)}</td>
                   <td className="px-4 py-3">
                     <Badge tone={STATUS_TONE[l.status]}>{STATUS_LABEL[l.status]}</Badge>
